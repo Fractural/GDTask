@@ -1,0 +1,4 @@
+[submodule "addons/FracturalCommons"]
+	path = addons/FracturalCommons
+	url = https://github.com/Fractural/FracturalCommons.git
+	branch = release
