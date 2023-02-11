@@ -56,3 +56,21 @@ public Test : Node
     }
 }
 ```
+
+## Installation
+
+Manual
+
+1. Download the repository
+2. Move the `addons/GDTask` folder into `addons/GDTask`
+
+Git Submodules
+
+1. Make sure your project has a git repo initialized
+2. Run
+   
+``` bash
+git submodule add -b release https://github.com/fractural/GDTask.git addons/GDTask
+```
+
+3. Add `addons/GDTask/Autoload/GDTaskPlayerLoopAutoload` as an autoload
