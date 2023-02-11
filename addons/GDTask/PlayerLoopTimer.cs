@@ -3,7 +3,7 @@
 using System.Threading;
 using System;
 using GDTask.Internal;
-using UnityEngine;
+using Godot;
 
 namespace GDTask
 {
@@ -32,7 +32,7 @@ namespace GDTask
         {
 #if DEBUG
             // force use Realtime.
-            if (PlayerLoopHelper.IsMainThread && !UnityEditor.EditorApplication.isPlaying)
+            if (GDTaskPlayerLoopManager.IsMainThread && Engine.EditorHint)
             {
                 delayType = DelayType.Realtime;
             }
@@ -40,8 +40,6 @@ namespace GDTask
 
             switch (delayType)
             {
-                case DelayType.UnscaledDeltaTime:
-                    return new IgnoreTimeScalePlayerLoopTimer(interval, periodic, playerLoopTiming, cancellationToken, timerCallback, state);
                 case DelayType.Realtime:
                     return new RealtimePlayerLoopTimer(interval, periodic, playerLoopTiming, cancellationToken, timerCallback, state);
                 case DelayType.DeltaTime:
@@ -68,7 +66,7 @@ namespace GDTask
             if (!isRunning)
             {
                 isRunning = true;
-                PlayerLoopHelper.AddAction(playerLoopTiming, this);
+                GDTaskPlayerLoopManager.AddAction(playerLoopTiming, this);
             }
             tryStop = false;
         }
@@ -84,7 +82,7 @@ namespace GDTask
             if (!isRunning)
             {
                 isRunning = true;
-                PlayerLoopHelper.AddAction(playerLoopTiming, this);
+                GDTaskPlayerLoopManager.AddAction(playerLoopTiming, this);
             }
             tryStop = false;
         }
@@ -160,13 +158,13 @@ namespace GDTask
         {
             if (elapsed == 0.0f)
             {
-                if (initialFrame == Time.frameCount)
+                if (initialFrame == Engine.GetFramesDrawn())
                 {
                     return true;
                 }
             }
 
-            elapsed += Time.deltaTime;
+            elapsed += GDTaskPlayerLoopManager.Global.DeltaTime;
             if (elapsed >= interval)
             {
                 return false;
@@ -178,49 +176,7 @@ namespace GDTask
         protected override void ResetCore(TimeSpan? interval)
         {
             this.elapsed = 0.0f;
-            this.initialFrame = PlayerLoopHelper.IsMainThread ? Time.frameCount : -1;
-            if (interval != null)
-            {
-                this.interval = (float)interval.Value.TotalSeconds;
-            }
-        }
-    }
-
-    sealed class IgnoreTimeScalePlayerLoopTimer : PlayerLoopTimer
-    {
-        int initialFrame;
-        float elapsed;
-        float interval;
-
-        public IgnoreTimeScalePlayerLoopTimer(TimeSpan interval, bool periodic, PlayerLoopTiming playerLoopTiming, CancellationToken cancellationToken, Action<object> timerCallback, object state)
-            : base(periodic, playerLoopTiming, cancellationToken, timerCallback, state)
-        {
-            ResetCore(interval);
-        }
-
-        protected override bool MoveNextCore()
-        {
-            if (elapsed == 0.0f)
-            {
-                if (initialFrame == Time.frameCount)
-                {
-                    return true;
-                }
-            }
-
-            elapsed += Time.unscaledDeltaTime;
-            if (elapsed >= interval)
-            {
-                return false;
-            }
-
-            return true;
-        }
-
-        protected override void ResetCore(TimeSpan? interval)
-        {
-            this.elapsed = 0.0f;
-            this.initialFrame = PlayerLoopHelper.IsMainThread ? Time.frameCount : -1;
+            this.initialFrame = GDTaskPlayerLoopManager.IsMainThread ? Engine.GetFramesDrawn() : -1;
             if (interval != null)
             {
                 this.interval = (float)interval.Value.TotalSeconds;

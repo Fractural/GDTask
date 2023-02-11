@@ -2,20 +2,26 @@
 
 using System;
 using System.Threading;
-using UnityEngine;
+using Godot;
 
 namespace GDTask.Triggers
 {
-    public abstract class AsyncTriggerBase<T> : MonoBehaviour, IGDTaskAsyncEnumerable<T>
+    public abstract class AsyncTriggerBase<T> : Node
     {
         TriggerEvent<T> triggerEvent;
 
-        internal protected bool calledAwake;
+        internal protected bool calledEnterTree;
         internal protected bool calledDestroy;
 
-        void Awake()
+        public override void _EnterTree()
         {
-            calledAwake = true;
+            calledEnterTree = true;
+        }
+
+        public override void _Notification(int what)
+        {
+            if (what == NotificationPredelete)
+                OnDestroy();
         }
 
         void OnDestroy()
@@ -28,9 +34,9 @@ namespace GDTask.Triggers
 
         internal void AddHandler(ITriggerHandler<T> handler)
         {
-            if (!calledAwake)
+            if (!calledEnterTree)
             {
-                PlayerLoopHelper.AddAction(PlayerLoopTiming.Process, new AwakeMonitor(this));
+                GDTaskPlayerLoopManager.AddAction(PlayerLoopTiming.Process, new AwakeMonitor(this));
             }
 
             triggerEvent.Add(handler);
@@ -38,9 +44,9 @@ namespace GDTask.Triggers
 
         internal void RemoveHandler(ITriggerHandler<T> handler)
         {
-            if (!calledAwake)
+            if (!calledEnterTree)
             {
-                PlayerLoopHelper.AddAction(PlayerLoopTiming.Process, new AwakeMonitor(this));
+                GDTaskPlayerLoopManager.AddAction(PlayerLoopTiming.Process, new AwakeMonitor(this));
             }
 
             triggerEvent.Remove(handler);
@@ -49,94 +55,6 @@ namespace GDTask.Triggers
         protected void RaiseEvent(T value)
         {
             triggerEvent.SetResult(value);
-        }
-
-        public IGDTaskAsyncEnumerator<T> GetAsyncEnumerator(CancellationToken cancellationToken = default)
-        {
-            return new AsyncTriggerEnumerator(this, cancellationToken);
-        }
-
-        sealed class AsyncTriggerEnumerator : MoveNextSource, IGDTaskAsyncEnumerator<T>, ITriggerHandler<T>
-        {
-            static Action<object> cancellationCallback = CancellationCallback;
-
-            readonly AsyncTriggerBase<T> parent;
-            CancellationToken cancellationToken;
-            CancellationTokenRegistration registration;
-            bool called;
-            bool isDisposed;
-
-            public AsyncTriggerEnumerator(AsyncTriggerBase<T> parent, CancellationToken cancellationToken)
-            {
-                this.parent = parent;
-                this.cancellationToken = cancellationToken;
-            }
-
-            public void OnCanceled(CancellationToken cancellationToken = default)
-            {
-                completionSource.TrySetCanceled(cancellationToken);
-            }
-
-            public void OnNext(T value)
-            {
-                Current = value;
-                completionSource.TrySetResult(true);
-            }
-
-            public void OnCompleted()
-            {
-                completionSource.TrySetResult(false);
-            }
-
-            public void OnError(Exception ex)
-            {
-                completionSource.TrySetException(ex);
-            }
-
-            static void CancellationCallback(object state)
-            {
-                var self = (AsyncTriggerEnumerator)state;
-                self.DisposeAsync().Forget(); // sync
-
-                self.completionSource.TrySetCanceled(self.cancellationToken);
-            }
-
-            public T Current { get; private set; }
-            ITriggerHandler<T> ITriggerHandler<T>.Prev { get; set; }
-            ITriggerHandler<T> ITriggerHandler<T>.Next { get; set; }
-
-            public GDTask<bool> MoveNextAsync()
-            {
-                cancellationToken.ThrowIfCancellationRequested();
-                completionSource.Reset();
-
-                if (!called)
-                {
-                    called = true;
-
-                    TaskTracker.TrackActiveTask(this, 3);
-                    parent.AddHandler(this);
-                    if (cancellationToken.CanBeCanceled)
-                    {
-                        registration = cancellationToken.RegisterWithoutCaptureExecutionContext(cancellationCallback, this);
-                    }
-                }
-
-                return new GDTask<bool>(this, completionSource.Version);
-            }
-
-            public GDTask DisposeAsync()
-            {
-                if (!isDisposed)
-                {
-                    isDisposed = true;
-                    TaskTracker.RemoveTracking(this);
-                    registration.Dispose();
-                    parent.RemoveHandler(this);
-                }
-
-                return default;
-            }
         }
 
         class AwakeMonitor : IPlayerLoopItem
@@ -150,7 +68,7 @@ namespace GDTask.Triggers
 
             public bool MoveNext()
             {
-                if (trigger.calledAwake) return false;
+                if (trigger.calledEnterTree) return false;
                 if (trigger == null)
                 {
                     trigger.OnDestroy();

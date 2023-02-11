@@ -1,29 +1,25 @@
 ﻿#pragma warning disable CS1591 // Missing XML comment for publicly visible type or member
 
-using UnityEngine;
+using Godot;
+using Fractural.Utils;
 
 namespace GDTask.Triggers
 {
     public static partial class AsyncTriggerExtensions
     {
-        public static AsyncStartTrigger GetAsyncStartTrigger(this GameObject gameObject)
+        public static AsyncReadyTrigger GetAsyncStartTrigger(this Node node)
         {
-            return GetOrAddComponent<AsyncStartTrigger>(gameObject);
-        }
-
-        public static AsyncStartTrigger GetAsyncStartTrigger(this Component component)
-        {
-            return component.gameObject.GetAsyncStartTrigger();
+            return node.GetOrAddImmediateChild<AsyncReadyTrigger>();
         }
     }
 
-    [DisallowMultipleComponent]
-    public sealed class AsyncStartTrigger : AsyncTriggerBase<AsyncUnit>
+    public sealed class AsyncReadyTrigger : AsyncTriggerBase<AsyncUnit>
     {
         bool called;
 
-        void Start()
+        public override void _Ready()
         {
+            base._Ready();
             called = true;
             RaiseEvent(AsyncUnit.Default);
         }

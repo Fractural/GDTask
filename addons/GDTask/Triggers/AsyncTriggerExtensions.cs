@@ -1,40 +1,17 @@
 ﻿#pragma warning disable CS1591 // Missing XML comment for publicly visible type or member
 
 using System.Threading;
-using UnityEngine;
 using GDTask.Triggers;
+using Godot;
 
 namespace GDTask
 {
     public static class GDTaskCancellationExtensions
     {
-#if UNITY_2022_2_OR_NEWER
-
-        /// <summary>This CancellationToken is canceled when the MonoBehaviour will be destroyed.</summary>
-        public static CancellationToken GetCancellationTokenOnDestroy(this MonoBehaviour monoBehaviour)
+        /// <summary>This CancellationToken is canceled when the Node will be destroyed.</summary>
+        public static CancellationToken GetCancellationTokenOnDestroy(this Node node)
         {
-            return monoBehaviour.destroyCancellationToken;
-        }
-
-#endif
-
-        /// <summary>This CancellationToken is canceled when the MonoBehaviour will be destroyed.</summary>
-        public static CancellationToken GetCancellationTokenOnDestroy(this GameObject gameObject)
-        {
-            return gameObject.GetAsyncDestroyTrigger().CancellationToken;
-        }
-
-        /// <summary>This CancellationToken is canceled when the MonoBehaviour will be destroyed.</summary>
-        public static CancellationToken GetCancellationTokenOnDestroy(this Component component)
-        {
-#if UNITY_2022_2_OR_NEWER
-            if (component is MonoBehaviour mb)
-            {
-                return mb.destroyCancellationToken;
-            }
-#endif
-
-            return component.GetAsyncDestroyTrigger().CancellationToken;
+            return node.GetAsyncDestroyTrigger().CancellationToken;
         }
     }
 }
@@ -43,59 +20,22 @@ namespace GDTask.Triggers
 {
     public static partial class AsyncTriggerExtensions
     {
-        // Util.
-
-        static T GetOrAddComponent<T>(GameObject gameObject)
-            where T : Component
-        {
-#if UNITY_2019_2_OR_NEWER
-            if (!gameObject.TryGetComponent<T>(out var component))
-            {
-                component = gameObject.AddComponent<T>();
-            }
-#else
-            var component = gameObject.GetComponent<T>();
-            if (component == null)
-            {
-                component = gameObject.AddComponent<T>();
-            }
-#endif
-
-            return component;
-        }
-
         // Special for single operation.
 
-        /// <summary>This function is called when the MonoBehaviour will be destroyed.</summary>
-        public static GDTask OnDestroyAsync(this GameObject gameObject)
+        /// <summary>This function is called when the Node will be destroyed.</summary>
+        public static GDTask OnDestroyAsync(this Node node)
         {
-            return gameObject.GetAsyncDestroyTrigger().OnDestroyAsync();
+            return node.GetAsyncDestroyTrigger().OnDestroyAsync();
         }
 
-        /// <summary>This function is called when the MonoBehaviour will be destroyed.</summary>
-        public static GDTask OnDestroyAsync(this Component component)
+        public static GDTask StartAsync(this Node node)
         {
-            return component.GetAsyncDestroyTrigger().OnDestroyAsync();
+            return node.GetAsyncStartTrigger().StartAsync();
         }
 
-        public static GDTask StartAsync(this GameObject gameObject)
+        public static GDTask AwakeAsync(this Node node)
         {
-            return gameObject.GetAsyncStartTrigger().StartAsync();
-        }
-
-        public static GDTask StartAsync(this Component component)
-        {
-            return component.GetAsyncStartTrigger().StartAsync();
-        }
-
-        public static GDTask AwakeAsync(this GameObject gameObject)
-        {
-            return gameObject.GetAsyncAwakeTrigger().AwakeAsync();
-        }
-
-        public static GDTask AwakeAsync(this Component component)
-        {
-            return component.GetAsyncAwakeTrigger().AwakeAsync();
+            return node.GetAsyncAwakeTrigger().AwakeAsync();
         }
     }
 }

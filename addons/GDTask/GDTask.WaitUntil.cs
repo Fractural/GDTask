@@ -27,11 +27,10 @@ namespace GDTask
         public static GDTask<U> WaitUntilValueChanged<T, U>(T target, Func<T, U> monitorFunction, PlayerLoopTiming monitorTiming = PlayerLoopTiming.Process, IEqualityComparer<U> equalityComparer = null, CancellationToken cancellationToken = default(CancellationToken))
           where T : class
         {
-            var unityObject = target as UnityEngine.Object;
-            var isUnityObject = target is UnityEngine.Object; // don't use (unityObject == null)
+            var isGodotObject = target is Godot.Object; // don't use (unityObject == null)
 
-            return new GDTask<U>(isUnityObject
-                ? WaitUntilValueChangedUnityObjectPromise<T, U>.Create(target, monitorFunction, equalityComparer, monitorTiming, cancellationToken, out var token)
+            return new GDTask<U>(isGodotObject
+                ? WaitUntilValueChangedGodotObjectPromise<T, U>.Create(target, monitorFunction, equalityComparer, monitorTiming, cancellationToken, out var token)
                 : WaitUntilValueChangedStandardObjectPromise<T, U>.Create(target, monitorFunction, equalityComparer, monitorTiming, cancellationToken, out token), token);
         }
 
@@ -72,7 +71,7 @@ namespace GDTask
 
                 TaskTracker.TrackActiveTask(result, 3);
 
-                PlayerLoopHelper.AddAction(timing, result);
+                GDTaskPlayerLoopManager.AddAction(timing, result);
 
                 token = result.core.Version;
                 return result;
@@ -177,7 +176,7 @@ namespace GDTask
 
                 TaskTracker.TrackActiveTask(result, 3);
 
-                PlayerLoopHelper.AddAction(timing, result);
+                GDTaskPlayerLoopManager.AddAction(timing, result);
 
                 token = result.core.Version;
                 return result;
@@ -280,7 +279,7 @@ namespace GDTask
 
                 TaskTracker.TrackActiveTask(result, 3);
 
-                PlayerLoopHelper.AddAction(timing, result);
+                GDTaskPlayerLoopManager.AddAction(timing, result);
 
                 token = result.core.Version;
                 return result;
@@ -334,19 +333,19 @@ namespace GDTask
         }
 
         // where T : UnityEngine.Object, can not add constraint
-        sealed class WaitUntilValueChangedUnityObjectPromise<T, U> : IGDTaskSource<U>, IPlayerLoopItem, ITaskPoolNode<WaitUntilValueChangedUnityObjectPromise<T, U>>
+        sealed class WaitUntilValueChangedGodotObjectPromise<T, U> : IGDTaskSource<U>, IPlayerLoopItem, ITaskPoolNode<WaitUntilValueChangedGodotObjectPromise<T, U>>
         {
-            static TaskPool<WaitUntilValueChangedUnityObjectPromise<T, U>> pool;
-            WaitUntilValueChangedUnityObjectPromise<T, U> nextNode;
-            public ref WaitUntilValueChangedUnityObjectPromise<T, U> NextNode => ref nextNode;
+            static TaskPool<WaitUntilValueChangedGodotObjectPromise<T, U>> pool;
+            WaitUntilValueChangedGodotObjectPromise<T, U> nextNode;
+            public ref WaitUntilValueChangedGodotObjectPromise<T, U> NextNode => ref nextNode;
 
-            static WaitUntilValueChangedUnityObjectPromise()
+            static WaitUntilValueChangedGodotObjectPromise()
             {
-                TaskPool.RegisterSizeGetter(typeof(WaitUntilValueChangedUnityObjectPromise<T, U>), () => pool.Size);
+                TaskPool.RegisterSizeGetter(typeof(WaitUntilValueChangedGodotObjectPromise<T, U>), () => pool.Size);
             }
 
             T target;
-            UnityEngine.Object targetAsUnityObject;
+            Godot.Object targetAsGodotObject;
             U currentValue;
             Func<T, U> monitorFunction;
             IEqualityComparer<U> equalityComparer;
@@ -354,7 +353,7 @@ namespace GDTask
 
             GDTaskCompletionSourceCore<U> core;
 
-            WaitUntilValueChangedUnityObjectPromise()
+            WaitUntilValueChangedGodotObjectPromise()
             {
             }
 
@@ -367,11 +366,11 @@ namespace GDTask
 
                 if (!pool.TryPop(out var result))
                 {
-                    result = new WaitUntilValueChangedUnityObjectPromise<T, U>();
+                    result = new WaitUntilValueChangedGodotObjectPromise<T, U>();
                 }
 
                 result.target = target;
-                result.targetAsUnityObject = target as UnityEngine.Object;
+                result.targetAsGodotObject = target as Godot.Object;
                 result.monitorFunction = monitorFunction;
                 result.currentValue = monitorFunction(target);
                 result.equalityComparer = equalityComparer ?? GodotEqualityComparer.GetDefault<U>();
@@ -379,7 +378,7 @@ namespace GDTask
 
                 TaskTracker.TrackActiveTask(result, 3);
 
-                PlayerLoopHelper.AddAction(timing, result);
+                GDTaskPlayerLoopManager.AddAction(timing, result);
 
                 token = result.core.Version;
                 return result;
@@ -419,7 +418,7 @@ namespace GDTask
 
             public bool MoveNext()
             {
-                if (cancellationToken.IsCancellationRequested || targetAsUnityObject == null) // destroyed = cancel.
+                if (cancellationToken.IsCancellationRequested || targetAsGodotObject == null) // destroyed = cancel.
                 {
                     core.TrySetCanceled(cancellationToken);
                     return false;
@@ -501,7 +500,7 @@ namespace GDTask
 
                 TaskTracker.TrackActiveTask(result, 3);
 
-                PlayerLoopHelper.AddAction(timing, result);
+                GDTaskPlayerLoopManager.AddAction(timing, result);
 
                 token = result.core.Version;
                 return result;

@@ -31,7 +31,7 @@ namespace GDTask.Triggers
 
                 if (!awakeCalled)
                 {
-                    PlayerLoopHelper.AddAction(PlayerLoopTiming.Process, new AwakeMonitor(this));
+                    GDTaskPlayerLoopManager.AddAction(PlayerLoopTiming.Process, new AwakeMonitor(this));
                 }
 
                 return cancellationTokenSource.Token;
