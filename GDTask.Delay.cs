@@ -1,13 +1,11 @@
-﻿#pragma warning disable CS1591 // Missing XML comment for publicly visible type or member
-
-using GDTask.Internal;
+﻿using Fractural.Tasks.Internal;
 using System;
 using System.Collections;
 using System.Runtime.CompilerServices;
 using System.Threading;
 using Godot;
 
-namespace GDTask
+namespace Fractural.Tasks
 {
     public enum DelayType
     {
@@ -135,7 +133,7 @@ namespace GDTask
 
 #if DEBUG
             // force use Realtime.
-            if (GDTaskPlayerLoopManager.IsMainThread && Engine.EditorHint)
+            if (GDTaskPlayerLoopAutoload.IsMainThread && Engine.EditorHint)
             {
                 delayType = DelayType.Realtime;
             }
@@ -190,7 +188,7 @@ namespace GDTask
 
                 TaskTracker.TrackActiveTask(result, 3);
 
-                GDTaskPlayerLoopManager.AddAction(timing, result);
+                GDTaskPlayerLoopAutoload.AddAction(timing, result);
 
                 token = result.core.Version;
                 return result;
@@ -275,12 +273,12 @@ namespace GDTask
                     result = new NextFramePromise();
                 }
 
-                result.frameCount = GDTaskPlayerLoopManager.IsMainThread ? Engine.GetFramesDrawn() : -1;
+                result.frameCount = GDTaskPlayerLoopAutoload.IsMainThread ? Engine.GetFramesDrawn() : -1;
                 result.cancellationToken = cancellationToken;
 
                 TaskTracker.TrackActiveTask(result, 3);
 
-                GDTaskPlayerLoopManager.AddAction(timing, result);
+                GDTaskPlayerLoopAutoload.AddAction(timing, result);
 
                 token = result.core.Version;
                 return result;
@@ -375,11 +373,11 @@ namespace GDTask
 
                 result.delayFrameCount = delayFrameCount;
                 result.cancellationToken = cancellationToken;
-                result.initialFrame = GDTaskPlayerLoopManager.IsMainThread ? Engine.GetFramesDrawn() : -1;
+                result.initialFrame = GDTaskPlayerLoopAutoload.IsMainThread ? Engine.GetFramesDrawn() : -1;
 
                 TaskTracker.TrackActiveTask(result, 3);
 
-                GDTaskPlayerLoopManager.AddAction(timing, result);
+                GDTaskPlayerLoopAutoload.AddAction(timing, result);
 
                 token = result.core.Version;
                 return result;
@@ -433,7 +431,7 @@ namespace GDTask
                     {
 #if DEBUG
                         // force use Realtime.
-                        if (GDTaskPlayerLoopManager.IsMainThread && Engine.EditorHint)
+                        if (GDTaskPlayerLoopAutoload.IsMainThread && Engine.EditorHint)
                         {
                             //goto ++currentFrameCount
                         }
@@ -504,11 +502,11 @@ namespace GDTask
                 result.elapsed = 0.0f;
                 result.delayTimeSpan = (float)delayTimeSpan.TotalSeconds;
                 result.cancellationToken = cancellationToken;
-                result.initialFrame = GDTaskPlayerLoopManager.IsMainThread ? Engine.GetFramesDrawn() : -1;
+                result.initialFrame = GDTaskPlayerLoopAutoload.IsMainThread ? Engine.GetFramesDrawn() : -1;
 
                 TaskTracker.TrackActiveTask(result, 3);
 
-                GDTaskPlayerLoopManager.AddAction(timing, result);
+                GDTaskPlayerLoopAutoload.AddAction(timing, result);
 
                 token = result.core.Version;
                 return result;
@@ -557,7 +555,7 @@ namespace GDTask
                     }
                 }
 
-                elapsed += GDTaskPlayerLoopManager.Global.DeltaTime;
+                elapsed += GDTaskPlayerLoopAutoload.Global.DeltaTime;
                 if (elapsed >= delayTimeSpan)
                 {
                     core.TrySetResult(null);
@@ -617,7 +615,7 @@ namespace GDTask
 
                 TaskTracker.TrackActiveTask(result, 3);
 
-                GDTaskPlayerLoopManager.AddAction(timing, result);
+                GDTaskPlayerLoopAutoload.AddAction(timing, result);
 
                 token = result.core.Version;
                 return result;
@@ -718,12 +716,12 @@ namespace GDTask
 
             public void OnCompleted(Action continuation)
             {
-                GDTaskPlayerLoopManager.AddContinuation(timing, continuation);
+                GDTaskPlayerLoopAutoload.AddContinuation(timing, continuation);
             }
 
             public void UnsafeOnCompleted(Action continuation)
             {
-                GDTaskPlayerLoopManager.AddContinuation(timing, continuation);
+                GDTaskPlayerLoopAutoload.AddContinuation(timing, continuation);
             }
         }
     }

@@ -1,13 +1,11 @@
-﻿#pragma warning disable CS1591 // Missing XML comment for publicly visible type or member
-
-using System;
+﻿using System;
 using System.Collections;
 using System.Runtime.ExceptionServices;
 using System.Threading;
 using System.Threading.Tasks;
-using GDTask.Internal;
+using Fractural.Tasks.Internal;
 
-namespace GDTask
+namespace Fractural.Tasks
 {
     public static partial class GDTaskExtensions
     {

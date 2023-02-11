@@ -3,7 +3,7 @@ using System;
 using System.Runtime.InteropServices;
 using System.Threading;
 
-namespace GDTask
+namespace Fractural.Tasks
 {
     public class GDTaskSynchronizationContext : SynchronizationContext
     {

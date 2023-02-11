@@ -2,7 +2,7 @@
 using System;
 using System.Threading;
 
-namespace GDTask.Internal
+namespace Fractural.Tasks.Internal
 {
     internal sealed class ContinuationQueue
     {

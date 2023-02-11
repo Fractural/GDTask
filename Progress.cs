@@ -1,8 +1,8 @@
 ﻿using System;
 using System.Collections.Generic;
-using GDTask.Internal;
+using Fractural.Tasks.Internal;
 
-namespace GDTask
+namespace Fractural.Tasks
 {
     /// <summary>
     /// Lightweight IProgress[T] factory.

@@ -1,9 +1,7 @@
-﻿#pragma warning disable CS1591 // Missing XML comment for publicly visible type or member
-
-using System;
+﻿using System;
 using System.Runtime.CompilerServices;
 
-namespace GDTask.Internal
+namespace Fractural.Tasks.Internal
 {
     internal static class Error
     {

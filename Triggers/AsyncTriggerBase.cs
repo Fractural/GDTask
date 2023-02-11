@@ -1,10 +1,8 @@
-﻿#pragma warning disable CS1591 // Missing XML comment for publicly visible type or member
-
-using System;
+﻿using System;
 using System.Threading;
 using Godot;
 
-namespace GDTask.Triggers
+namespace Fractural.Tasks.Triggers
 {
     public abstract class AsyncTriggerBase<T> : Node
     {
@@ -36,7 +34,7 @@ namespace GDTask.Triggers
         {
             if (!calledEnterTree)
             {
-                GDTaskPlayerLoopManager.AddAction(PlayerLoopTiming.Process, new AwakeMonitor(this));
+                GDTaskPlayerLoopAutoload.AddAction(PlayerLoopTiming.Process, new AwakeMonitor(this));
             }
 
             triggerEvent.Add(handler);
@@ -46,7 +44,7 @@ namespace GDTask.Triggers
         {
             if (!calledEnterTree)
             {
-                GDTaskPlayerLoopManager.AddAction(PlayerLoopTiming.Process, new AwakeMonitor(this));
+                GDTaskPlayerLoopAutoload.AddAction(PlayerLoopTiming.Process, new AwakeMonitor(this));
             }
 
             triggerEvent.Remove(handler);

@@ -1,12 +1,10 @@
-﻿#pragma warning disable CS1591 // Missing XML comment for publicly visible type or member
-
-using Godot;
+﻿using Godot;
 using System;
 #if UNITY_2018_3_OR_NEWER
 using UnityEngine;
 #endif
 
-namespace GDTask.Internal
+namespace Fractural.Tasks.Internal
 {
     internal static class RuntimeHelpersAbstraction
     {

@@ -1,11 +1,9 @@
-﻿#pragma warning disable CS1591 // Missing XML comment for publicly visible type or member
-
-using System;
+﻿using System;
 using System.Collections.Generic;
 using System.Threading;
-using GDTask.Internal;
+using Fractural.Tasks.Internal;
 
-namespace GDTask
+namespace Fractural.Tasks
 {
     public partial struct GDTask
     {
@@ -71,7 +69,7 @@ namespace GDTask
 
                 TaskTracker.TrackActiveTask(result, 3);
 
-                GDTaskPlayerLoopManager.AddAction(timing, result);
+                GDTaskPlayerLoopAutoload.AddAction(timing, result);
 
                 token = result.core.Version;
                 return result;
@@ -176,7 +174,7 @@ namespace GDTask
 
                 TaskTracker.TrackActiveTask(result, 3);
 
-                GDTaskPlayerLoopManager.AddAction(timing, result);
+                GDTaskPlayerLoopAutoload.AddAction(timing, result);
 
                 token = result.core.Version;
                 return result;
@@ -279,7 +277,7 @@ namespace GDTask
 
                 TaskTracker.TrackActiveTask(result, 3);
 
-                GDTaskPlayerLoopManager.AddAction(timing, result);
+                GDTaskPlayerLoopAutoload.AddAction(timing, result);
 
                 token = result.core.Version;
                 return result;
@@ -378,7 +376,7 @@ namespace GDTask
 
                 TaskTracker.TrackActiveTask(result, 3);
 
-                GDTaskPlayerLoopManager.AddAction(timing, result);
+                GDTaskPlayerLoopAutoload.AddAction(timing, result);
 
                 token = result.core.Version;
                 return result;
@@ -500,7 +498,7 @@ namespace GDTask
 
                 TaskTracker.TrackActiveTask(result, 3);
 
-                GDTaskPlayerLoopManager.AddAction(timing, result);
+                GDTaskPlayerLoopAutoload.AddAction(timing, result);
 
                 token = result.core.Version;
                 return result;

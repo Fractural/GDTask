@@ -1,10 +1,8 @@
-﻿#pragma warning disable CS1591 // Missing XML comment for publicly visible type or member
-
-using System.Threading;
-using GDTask.Triggers;
+﻿using System.Threading;
+using Fractural.Tasks.Triggers;
 using Godot;
 
-namespace GDTask
+namespace Fractural.Tasks
 {
     public static class GDTaskCancellationExtensions
     {
@@ -16,7 +14,7 @@ namespace GDTask
     }
 }
 
-namespace GDTask.Triggers
+namespace Fractural.Tasks.Triggers
 {
     public static partial class AsyncTriggerExtensions
     {

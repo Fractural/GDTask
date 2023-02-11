@@ -3,9 +3,9 @@ using System;
 using System.Runtime.CompilerServices;
 using System.Runtime.ExceptionServices;
 using System.Threading;
-using GDTask.Internal;
+using Fractural.Tasks.Internal;
 
-namespace GDTask
+namespace Fractural.Tasks
 {
     public partial struct GDTask
     {

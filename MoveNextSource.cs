@@ -1,6 +1,6 @@
 ﻿using System;
 
-namespace GDTask
+namespace Fractural.Tasks
 {
     public abstract class MoveNextSource : IGDTaskSource<bool>
     {

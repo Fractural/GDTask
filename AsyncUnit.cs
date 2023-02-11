@@ -2,7 +2,7 @@
 
 using System;
 
-namespace GDTask
+namespace Fractural.Tasks
 {
     public readonly struct AsyncUnit : IEquatable<AsyncUnit>
     {

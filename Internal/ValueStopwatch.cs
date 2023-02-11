@@ -1,7 +1,7 @@
 ﻿using System;
 using System.Diagnostics;
 
-namespace GDTask.Internal
+namespace Fractural.Tasks.Internal
 {
     internal readonly struct ValueStopwatch
     {
