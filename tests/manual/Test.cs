@@ -52,8 +52,6 @@ namespace Tests.Manual
             GD.Print("WaitForPhysicsProcess");
             await GDTask.NextFrame();
             GD.Print("NextFrame");
-            await GDTask.WaitForPhysicsProcess();
-            GD.Print("WaitForPhysicsProcess");
         }
 
         private async GDTask<string> RunWithResult()

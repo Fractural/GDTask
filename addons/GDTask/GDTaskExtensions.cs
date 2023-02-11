@@ -355,19 +355,7 @@ namespace Fractural.Tasks
             }
         }
 
-#if UNITY_2018_3_OR_NEWER
-
-        public static IEnumerator ToCoroutine<T>(this GDTask<T> task, Action<T> resultHandler = null, Action<Exception> exceptionHandler = null)
-        {
-            return new ToCoroutineEnumerator<T>(task, resultHandler, exceptionHandler);
-        }
-
-        public static IEnumerator ToCoroutine(this GDTask task, Action<Exception> exceptionHandler = null)
-        {
-            return new ToCoroutineEnumerator(task, exceptionHandler);
-        }
-
-        public static async GDTask Timeout(this GDTask task, TimeSpan timeout, DelayType delayType = DelayType.DeltaTime, PlayerLoopTiming timeoutCheckTiming = PlayerLoopTiming.Update, CancellationTokenSource taskCancellationTokenSource = null)
+        public static async GDTask Timeout(this GDTask task, TimeSpan timeout, DelayType delayType = DelayType.DeltaTime, PlayerLoopTiming timeoutCheckTiming = PlayerLoopTiming.Process, CancellationTokenSource taskCancellationTokenSource = null)
         {
             var delayCancellationTokenSource = new CancellationTokenSource();
             var timeoutTask = GDTask.Delay(timeout, delayType, timeoutCheckTiming, delayCancellationTokenSource.Token).SuppressCancellationThrow();
@@ -408,7 +396,7 @@ namespace Fractural.Tasks
             }
         }
 
-        public static async GDTask<T> Timeout<T>(this GDTask<T> task, TimeSpan timeout, DelayType delayType = DelayType.DeltaTime, PlayerLoopTiming timeoutCheckTiming = PlayerLoopTiming.Update, CancellationTokenSource taskCancellationTokenSource = null)
+        public static async GDTask<T> Timeout<T>(this GDTask<T> task, TimeSpan timeout, DelayType delayType = DelayType.DeltaTime, PlayerLoopTiming timeoutCheckTiming = PlayerLoopTiming.Process, CancellationTokenSource taskCancellationTokenSource = null)
         {
             var delayCancellationTokenSource = new CancellationTokenSource();
             var timeoutTask = GDTask.Delay(timeout, delayType, timeoutCheckTiming, delayCancellationTokenSource.Token).SuppressCancellationThrow();
@@ -454,7 +442,7 @@ namespace Fractural.Tasks
         /// <summary>
         /// Timeout with suppress OperationCanceledException. Returns (bool, IsCacneled).
         /// </summary>
-        public static async GDTask<bool> TimeoutWithoutException(this GDTask task, TimeSpan timeout, DelayType delayType = DelayType.DeltaTime, PlayerLoopTiming timeoutCheckTiming = PlayerLoopTiming.Update, CancellationTokenSource taskCancellationTokenSource = null)
+        public static async GDTask<bool> TimeoutWithoutException(this GDTask task, TimeSpan timeout, DelayType delayType = DelayType.DeltaTime, PlayerLoopTiming timeoutCheckTiming = PlayerLoopTiming.Process, CancellationTokenSource taskCancellationTokenSource = null)
         {
             var delayCancellationTokenSource = new CancellationTokenSource();
             var timeoutTask = GDTask.Delay(timeout, delayType, timeoutCheckTiming, delayCancellationTokenSource.Token).SuppressCancellationThrow();
@@ -500,7 +488,7 @@ namespace Fractural.Tasks
         /// <summary>
         /// Timeout with suppress OperationCanceledException. Returns (bool IsTimeout, T Result).
         /// </summary>
-        public static async GDTask<(bool IsTimeout, T Result)> TimeoutWithoutException<T>(this GDTask<T> task, TimeSpan timeout, DelayType delayType = DelayType.DeltaTime, PlayerLoopTiming timeoutCheckTiming = PlayerLoopTiming.Update, CancellationTokenSource taskCancellationTokenSource = null)
+        public static async GDTask<(bool IsTimeout, T Result)> TimeoutWithoutException<T>(this GDTask<T> task, TimeSpan timeout, DelayType delayType = DelayType.DeltaTime, PlayerLoopTiming timeoutCheckTiming = PlayerLoopTiming.Process, CancellationTokenSource taskCancellationTokenSource = null)
         {
             var delayCancellationTokenSource = new CancellationTokenSource();
             var timeoutTask = GDTask.Delay(timeout, delayType, timeoutCheckTiming, delayCancellationTokenSource.Token).SuppressCancellationThrow();
@@ -542,8 +530,6 @@ namespace Fractural.Tasks
 
             return (false, taskResult.Result);
         }
-
-#endif
 
         public static void Forget(this GDTask task)
         {
@@ -602,9 +588,7 @@ namespace Fractural.Tasks
                 {
                     if (handleExceptionOnMainThread)
                     {
-#if UNITY_2018_3_OR_NEWER
                         await GDTask.SwitchToMainThread();
-#endif
                     }
                     exceptionHandler(ex);
                 }
@@ -672,9 +656,7 @@ namespace Fractural.Tasks
                 {
                     if (handleExceptionOnMainThread)
                     {
-#if UNITY_2018_3_OR_NEWER
                         await GDTask.SwitchToMainThread();
-#endif
                     }
                     exceptionHandler(ex);
                 }
@@ -778,142 +760,6 @@ namespace Fractural.Tasks
         {
             await (await task).ConfigureAwait(continueOnCapturedContext);
         }
-
-#if UNITY_2018_3_OR_NEWER
-
-        sealed class ToCoroutineEnumerator : IEnumerator
-        {
-            bool completed;
-            GDTask task;
-            Action<Exception> exceptionHandler = null;
-            bool isStarted = false;
-            ExceptionDispatchInfo exception;
-
-            public ToCoroutineEnumerator(GDTask task, Action<Exception> exceptionHandler)
-            {
-                completed = false;
-                this.exceptionHandler = exceptionHandler;
-                this.task = task;
-            }
-
-            async GDTaskVoid RunTask(GDTask task)
-            {
-                try
-                {
-                    await task;
-                }
-                catch (Exception ex)
-                {
-                    if (exceptionHandler != null)
-                    {
-                        exceptionHandler(ex);
-                    }
-                    else
-                    {
-                        this.exception = ExceptionDispatchInfo.Capture(ex);
-                    }
-                }
-                finally
-                {
-                    completed = true;
-                }
-            }
-
-            public object Current => null;
-
-            public bool MoveNext()
-            {
-                if (!isStarted)
-                {
-                    isStarted = true;
-                    RunTask(task).Forget();
-                }
-
-                if (exception != null)
-                {
-                    exception.Throw();
-                    return false;
-                }
-
-                return !completed;
-            }
-
-            void IEnumerator.Reset()
-            {
-            }
-        }
-
-        sealed class ToCoroutineEnumerator<T> : IEnumerator
-        {
-            bool completed;
-            Action<T> resultHandler = null;
-            Action<Exception> exceptionHandler = null;
-            bool isStarted = false;
-            GDTask<T> task;
-            object current = null;
-            ExceptionDispatchInfo exception;
-
-            public ToCoroutineEnumerator(GDTask<T> task, Action<T> resultHandler, Action<Exception> exceptionHandler)
-            {
-                completed = false;
-                this.task = task;
-                this.resultHandler = resultHandler;
-                this.exceptionHandler = exceptionHandler;
-            }
-
-            async GDTaskVoid RunTask(GDTask<T> task)
-            {
-                try
-                {
-                    var value = await task;
-                    current = value; // boxed if T is struct...
-                    if (resultHandler != null)
-                    {
-                        resultHandler(value);
-                    }
-                }
-                catch (Exception ex)
-                {
-                    if (exceptionHandler != null)
-                    {
-                        exceptionHandler(ex);
-                    }
-                    else
-                    {
-                        this.exception = ExceptionDispatchInfo.Capture(ex);
-                    }
-                }
-                finally
-                {
-                    completed = true;
-                }
-            }
-
-            public object Current => current;
-
-            public bool MoveNext()
-            {
-                if (!isStarted)
-                {
-                    isStarted = true;
-                    RunTask(task).Forget();
-                }
-
-                if (exception != null)
-                {
-                    exception.Throw();
-                    return false;
-                }
-
-                return !completed;
-            }
-
-            void IEnumerator.Reset()
-            {
-            }
-        }
-
-#endif
     }
 }
 

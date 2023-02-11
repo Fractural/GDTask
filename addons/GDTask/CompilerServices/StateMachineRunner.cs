@@ -7,18 +7,12 @@ using System.Runtime.CompilerServices;
 
 namespace Fractural.Tasks.CompilerServices
 {
-    // #ENABLE_IL2CPP in this file is to avoid bug of IL2CPP VM.
-    // Issue is tracked on https://issuetracker.unity3d.com/issues/il2cpp-incorrect-results-when-calling-a-method-from-outside-class-in-a-struct
-    // but currently it is labeled `Won't Fix`.
-
     internal interface IStateMachineRunner
     {
         Action MoveNext { get; }
         void Return();
 
-#if ENABLE_IL2CPP
         Action ReturnAction { get; }
-#endif
     }
 
     internal interface IStateMachineRunnerPromise : IGDTaskSource
@@ -53,9 +47,7 @@ namespace Fractural.Tasks.CompilerServices
     {
         static TaskPool<AsyncGDTaskVoid<TStateMachine>> pool;
 
-#if ENABLE_IL2CPP
         public Action ReturnAction { get; }
-#endif
 
         TStateMachine stateMachine;
 
@@ -308,7 +300,6 @@ namespace Fractural.Tasks.CompilerServices
         [MethodImpl(MethodImplOptions.AggressiveInlining)]
         void Run()
         {
-            // UnityEngine.Debug.Log($"MoveNext State:" + StateMachineUtility.GetState(stateMachine));
             stateMachine.MoveNext();
         }
 

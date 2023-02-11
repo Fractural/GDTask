@@ -1,8 +1,5 @@
 ﻿using Godot;
 using System;
-#if UNITY_2018_3_OR_NEWER
-using UnityEngine;
-#endif
 
 namespace Fractural.Tasks.Internal
 {

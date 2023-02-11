@@ -135,28 +135,6 @@ namespace Fractural.Tasks
             return () => asyncAction(cancellationToken).Forget();
         }
 
-#if UNITY_2018_3_OR_NEWER
-
-        /// <summary>
-        /// Create async void(GDTaskVoid) UnityAction.
-        /// For exampe: onClick.AddListener(GDTask.UnityAction(async () => { /* */ } ))
-        /// </summary>
-        public static UnityEngine.Events.UnityAction UnityAction(Func<GDTaskVoid> asyncAction)
-        {
-            return () => asyncAction().Forget();
-        }
-
-        /// <summary>
-        /// Create async void(GDTaskVoid) UnityAction.
-        /// For exampe: onClick.AddListener(GDTask.UnityAction(FooAsync, this.GetCancellationTokenOnDestroy()))
-        /// </summary>
-        public static UnityEngine.Events.UnityAction UnityAction(Func<CancellationToken, GDTaskVoid> asyncAction, CancellationToken cancellationToken)
-        {
-            return () => asyncAction(cancellationToken).Forget();
-        }
-
-#endif
-
         /// <summary>
         /// Defer the task creation just before call await.
         /// </summary>
