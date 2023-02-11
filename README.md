@@ -12,14 +12,14 @@ async GDTask<string> DemoAsync()
 {
     await GDTask.DelayFrame(100);
 
-		await UniTask.Delay(TimeSpan.FromSeconds(10));
+    await UniTask.Delay(TimeSpan.FromSeconds(10));
 
-		await GDTask.Yield();
-		await GDTask.NextFrame();
+    await GDTask.Yield();
+    await GDTask.NextFrame();
 
-		await GDTask.WaitForEndOfFrame();
-		await GDTask.WaitForPhysicsProcess();
+    await GDTask.WaitForEndOfFrame();
+    await GDTask.WaitForPhysicsProcess();
 
-		return "final value";
+    return "final value";
 }
 ```
