@@ -1,6 +1,7 @@
 using Fractural.Tasks;
 using Godot;
 using System;
+using System.Threading;
 
 namespace Tests.Manual
 {
@@ -36,6 +37,15 @@ namespace Tests.Manual
             string result = await RunWithResult();
             GD.Print($"Post got result: {result}");
 
+            GD.Print("LongTask started");
+            var cts = new CancellationTokenSource();
+
+            CancellableReallyLongTask(cts.Token).Forget();
+
+            await GDTask.Delay(TimeSpan.FromSeconds(3));
+            cts.Cancel();
+            GD.Print("LongTask cancelled");
+
             await GDTask.WaitForEndOfFrame();
             GD.Print("WaitForEndOfFrame");
             await GDTask.WaitForPhysicsProcess();
@@ -50,6 +60,18 @@ namespace Tests.Manual
         {
             await GDTask.Delay(TimeSpan.FromSeconds(2));
             return "Hello";
+        }
+
+        private async GDTaskVoid CancellableReallyLongTask(CancellationToken cancellationToken)
+        {
+            int seconds = 10;
+            GD.Print($"Starting long task ({seconds} seconds long).");
+            for (int i = 0; i < seconds; i++)
+            {
+                GD.Print($"Working on long task for {i} seconds...");
+                await GDTask.Delay(TimeSpan.FromSeconds(1), cancellationToken: cancellationToken);
+            }
+            GD.Print("Finished long task.");
         }
     }
 }

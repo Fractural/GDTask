@@ -8,18 +8,51 @@ Based on code from [Cysharp's UniTask library for Unity](https://github.com/Cysh
 ```CSharp
 using Fractural.Tasks;
 
-async GDTask<string> DemoAsync() 
+public Test : Node 
 {
-    await GDTask.DelayFrame(100);
+    public override _Ready() 
+    {
+        // Running a task from a non-async method
+        Run().Forget();
+    }
 
-    await UniTask.Delay(TimeSpan.FromSeconds(10));
+    public async GDTaskVoid Run() 
+    {
+        await GDTask.DelayFrame(100);
 
-    await GDTask.Yield();
-    await GDTask.NextFrame();
+        // waiting some amount of time
+        await GDTask.Delay(TimeSpan.FromSeconds(10));
 
-    await GDTask.WaitForEndOfFrame();
-    await GDTask.WaitForPhysicsProcess();
+        // Waiting a single frame
+        await GDTask.Yield();
+        await GDTask.NextFrame();
+        await GDTask.WaitForEndOfFrame();
 
-    return "final value";
+        // Waiting for specific lifetime call
+        await GDTask.WaitForPhysicsProcess();
+
+        // Cancellation
+        var cts = new CancellationTokenSource();
+        CancellableReallyLongTask(cts.Token).Forget();
+        await GDTask.Delay(TimeSpan.FromSeconds(3));
+        cts.Cancel();
+
+        // Async await with return value
+        string result = await RunWithResult();
+        return result + " with additional text";
+    }
+
+    public async GDTask<string> RunWithResult()
+    {
+        await GDTask.Delay(TimeSpan.FromSeconds(3));
+        return "A result string";
+    }
+
+    public async GDTaskVoid ReallyLongTask(CancellationToken cancellationToken)
+    {
+        GD.Print("Starting long task.");
+        await GDTask.Delay(TimeSpan.FromSeconds(1000000), cancellationToken: cancellationToken);
+        GD.Print("Finished long task.");
+    }
 }
 ```
