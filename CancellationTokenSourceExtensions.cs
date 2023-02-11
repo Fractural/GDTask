@@ -4,6 +4,7 @@ using System.Threading;
 using GDTask.Triggers;
 using System;
 using GDTask.Internal;
+using Godot;
 
 namespace GDTask
 {
@@ -28,14 +29,9 @@ namespace GDTask
             return PlayerLoopTimer.StartNew(delayTimeSpan, false, delayType, delayTiming, cts.Token, CancelCancellationTokenSourceStateDelegate, cts);
         }
 
-        public static void RegisterRaiseCancelOnDestroy(this CancellationTokenSource cts, Component component)
+        public static void RegisterRaiseCancelOnDestroy(this CancellationTokenSource cts, Node node)
         {
-            RegisterRaiseCancelOnDestroy(cts, component.gameObject);
-        }
-
-        public static void RegisterRaiseCancelOnDestroy(this CancellationTokenSource cts, GameObject gameObject)
-        {
-            var trigger = gameObject.GetAsyncDestroyTrigger();
+            var trigger = node.GetAsyncDestroyTrigger();
             trigger.CancellationToken.RegisterWithoutCaptureExecutionContext(CancelCancellationTokenSourceStateDelegate, cts);
         }
     }

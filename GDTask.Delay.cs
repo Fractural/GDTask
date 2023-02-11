@@ -13,8 +13,6 @@ namespace GDTask
     {
         /// <summary>use Time.deltaTime.</summary>
         DeltaTime,
-        /// <summary>Ignore timescale, use Time.unscaledDeltaTime.</summary>
-        UnscaledDeltaTime,
         /// <summary>use Stopwatch.GetTimestamp().</summary>
         Realtime
     }
@@ -75,40 +73,30 @@ namespace GDTask
             return new GDTask(NextFramePromise.Create(timing, cancellationToken, out var token), token);
         }
 
-        [Obsolete("Use WaitForEndOfFrame(MonoBehaviour) instead or GDTask.Yield(PlayerLoopTiming.LastPostLateUpdate). Equivalent for coroutine's WaitForEndOfFrame requires MonoBehaviour(runner of Coroutine).")]
         public static YieldAwaitable WaitForEndOfFrame()
         {
-            return GDTask.Yield(PlayerLoopTiming.LastPostLateUpdate);
+            return GDTask.Yield(PlayerLoopTiming.Process);
         }
 
-        [Obsolete("Use WaitForEndOfFrame(MonoBehaviour) instead or GDTask.Yield(PlayerLoopTiming.LastPostLateUpdate). Equivalent for coroutine's WaitForEndOfFrame requires MonoBehaviour(runner of Coroutine).")]
         public static GDTask WaitForEndOfFrame(CancellationToken cancellationToken)
         {
-            return GDTask.Yield(PlayerLoopTiming.LastPostLateUpdate, cancellationToken);
-        }
-
-        public static GDTask WaitForEndOfFrame(MonoBehaviour coroutineRunner, CancellationToken cancellationToken = default)
-        {
-            var source = WaitForEndOfFramePromise.Create(coroutineRunner, cancellationToken, out var token);
-            return new GDTask(source, token);
+            return GDTask.Yield(PlayerLoopTiming.Process, cancellationToken);
         }
 
         /// <summary>
-        /// Same as GDTask.Yield(PlayerLoopTiming.LastFixedUpdate).
+        /// Same as GDTask.Yield(PlayerLoopTiming.LastPhysicsProcess).
         /// </summary>
-        public static YieldAwaitable WaitForFixedUpdate()
+        public static YieldAwaitable WaitForPhysicsProcess()
         {
-            // use LastFixedUpdate instead of FixedUpdate
-            // https://github.com/Cysharp/GDTask/issues/377
-            return GDTask.Yield(PlayerLoopTiming.LastFixedUpdate);
+            return GDTask.Yield(PlayerLoopTiming.PhysicsProcess);
         }
 
         /// <summary>
-        /// Same as GDTask.Yield(PlayerLoopTiming.LastFixedUpdate, cancellationToken).
+        /// Same as GDTask.Yield(PlayerLoopTiming.LastPhysicsProcess, cancellationToken).
         /// </summary>
-        public static GDTask WaitForFixedUpdate(CancellationToken cancellationToken)
+        public static GDTask WaitForPhysicsProcess(CancellationToken cancellationToken)
         {
-            return GDTask.Yield(PlayerLoopTiming.LastFixedUpdate, cancellationToken);
+            return GDTask.Yield(PlayerLoopTiming.PhysicsProcess, cancellationToken);
         }
 
         public static GDTask DelayFrame(int delayFrameCount, PlayerLoopTiming delayTiming = PlayerLoopTiming.Process, CancellationToken cancellationToken = default(CancellationToken))
@@ -121,16 +109,15 @@ namespace GDTask
             return new GDTask(DelayFramePromise.Create(delayFrameCount, delayTiming, cancellationToken, out var token), token);
         }
 
-        public static GDTask Delay(int millisecondsDelay, bool ignoreTimeScale = false, PlayerLoopTiming delayTiming = PlayerLoopTiming.Process, CancellationToken cancellationToken = default(CancellationToken))
+        public static GDTask Delay(int millisecondsDelay, PlayerLoopTiming delayTiming = PlayerLoopTiming.Process, CancellationToken cancellationToken = default(CancellationToken))
         {
             var delayTimeSpan = TimeSpan.FromMilliseconds(millisecondsDelay);
-            return Delay(delayTimeSpan, ignoreTimeScale, delayTiming, cancellationToken);
+            return Delay(delayTimeSpan, delayTiming, cancellationToken);
         }
 
-        public static GDTask Delay(TimeSpan delayTimeSpan, bool ignoreTimeScale = false, PlayerLoopTiming delayTiming = PlayerLoopTiming.Process, CancellationToken cancellationToken = default(CancellationToken))
+        public static GDTask Delay(TimeSpan delayTimeSpan, PlayerLoopTiming delayTiming = PlayerLoopTiming.Process, CancellationToken cancellationToken = default(CancellationToken))
         {
-            var delayType = ignoreTimeScale ? DelayType.UnscaledDeltaTime : DelayType.DeltaTime;
-            return Delay(delayTimeSpan, delayType, delayTiming, cancellationToken);
+            return Delay(delayTimeSpan, DelayType.DeltaTime, delayTiming, cancellationToken);
         }
 
         public static GDTask Delay(int millisecondsDelay, DelayType delayType, PlayerLoopTiming delayTiming = PlayerLoopTiming.Process, CancellationToken cancellationToken = default(CancellationToken))
@@ -148,7 +135,7 @@ namespace GDTask
 
 #if DEBUG
             // force use Realtime.
-            if (PlayerLoopHelper.IsMainThread && !UnityEditor.EditorApplication.isPlaying)
+            if (GDTaskPlayerLoopManager.IsMainThread && Engine.EditorHint)
             {
                 delayType = DelayType.Realtime;
             }
@@ -156,10 +143,6 @@ namespace GDTask
 
             switch (delayType)
             {
-                case DelayType.UnscaledDeltaTime:
-                    {
-                        return new GDTask(DelayIgnoreTimeScalePromise.Create(delayTimeSpan, delayTiming, cancellationToken, out var token), token);
-                    }
                 case DelayType.Realtime:
                     {
                         return new GDTask(DelayRealtimePromise.Create(delayTimeSpan, delayTiming, cancellationToken, out var token), token);
@@ -207,7 +190,7 @@ namespace GDTask
 
                 TaskTracker.TrackActiveTask(result, 3);
 
-                PlayerLoopHelper.AddAction(timing, result);
+                GDTaskPlayerLoopManager.AddAction(timing, result);
 
                 token = result.core.Version;
                 return result;
@@ -292,12 +275,12 @@ namespace GDTask
                     result = new NextFramePromise();
                 }
 
-                result.frameCount = PlayerLoopHelper.IsMainThread ? Time.frameCount : -1;
+                result.frameCount = GDTaskPlayerLoopManager.IsMainThread ? Engine.GetFramesDrawn() : -1;
                 result.cancellationToken = cancellationToken;
 
                 TaskTracker.TrackActiveTask(result, 3);
 
-                PlayerLoopHelper.AddAction(timing, result);
+                GDTaskPlayerLoopManager.AddAction(timing, result);
 
                 token = result.core.Version;
                 return result;
@@ -338,7 +321,7 @@ namespace GDTask
                     return false;
                 }
 
-                if (frameCount == Time.frameCount)
+                if (frameCount == Engine.GetFramesDrawn())
                 {
                     return true;
                 }
@@ -353,113 +336,6 @@ namespace GDTask
                 core.Reset();
                 cancellationToken = default;
                 return pool.TryPush(this);
-            }
-        }
-
-        sealed class WaitForEndOfFramePromise : IGDTaskSource, ITaskPoolNode<WaitForEndOfFramePromise>, System.Collections.IEnumerator
-        {
-            static TaskPool<WaitForEndOfFramePromise> pool;
-            WaitForEndOfFramePromise nextNode;
-            public ref WaitForEndOfFramePromise NextNode => ref nextNode;
-
-            static WaitForEndOfFramePromise()
-            {
-                TaskPool.RegisterSizeGetter(typeof(WaitForEndOfFramePromise), () => pool.Size);
-            }
-
-            CancellationToken cancellationToken;
-            GDTaskCompletionSourceCore<object> core;
-
-            WaitForEndOfFramePromise()
-            {
-            }
-
-            public static IGDTaskSource Create(MonoBehaviour coroutineRunner, CancellationToken cancellationToken, out short token)
-            {
-                if (cancellationToken.IsCancellationRequested)
-                {
-                    return AutoResetGDTaskCompletionSource.CreateFromCanceled(cancellationToken, out token);
-                }
-
-                if (!pool.TryPop(out var result))
-                {
-                    result = new WaitForEndOfFramePromise();
-                }
-
-                result.cancellationToken = cancellationToken;
-
-                TaskTracker.TrackActiveTask(result, 3);
-
-                coroutineRunner.StartCoroutine(result);
-
-                token = result.core.Version;
-                return result;
-            }
-
-            public void GetResult(short token)
-            {
-                try
-                {
-                    core.GetResult(token);
-                }
-                finally
-                {
-                    TryReturn();
-                }
-            }
-
-            public GDTaskStatus GetStatus(short token)
-            {
-                return core.GetStatus(token);
-            }
-
-            public GDTaskStatus UnsafeGetStatus()
-            {
-                return core.UnsafeGetStatus();
-            }
-
-            public void OnCompleted(Action<object> continuation, object state, short token)
-            {
-                core.OnCompleted(continuation, state, token);
-            }
-
-            bool TryReturn()
-            {
-                TaskTracker.RemoveTracking(this);
-                core.Reset();
-                Reset(); // Reset Enumerator
-                cancellationToken = default;
-                return pool.TryPush(this);
-            }
-
-            // Coroutine Runner implementation
-
-            static readonly WaitForEndOfFrame waitForEndOfFrameYieldInstruction = new WaitForEndOfFrame();
-            bool isFirst = true;
-
-            object IEnumerator.Current => waitForEndOfFrameYieldInstruction;
-
-            bool IEnumerator.MoveNext()
-            {
-                if (isFirst)
-                {
-                    isFirst = false;
-                    return true; // start WaitForEndOfFrame
-                }
-
-                if (cancellationToken.IsCancellationRequested)
-                {
-                    core.TrySetCanceled(cancellationToken);
-                    return false;
-                }
-
-                core.TrySetResult(null);
-                return false;
-            }
-
-            public void Reset()
-            {
-                isFirst = true;
             }
         }
 
@@ -499,11 +375,11 @@ namespace GDTask
 
                 result.delayFrameCount = delayFrameCount;
                 result.cancellationToken = cancellationToken;
-                result.initialFrame = PlayerLoopHelper.IsMainThread ? Time.frameCount : -1;
+                result.initialFrame = GDTaskPlayerLoopManager.IsMainThread ? Engine.GetFramesDrawn() : -1;
 
                 TaskTracker.TrackActiveTask(result, 3);
 
-                PlayerLoopHelper.AddAction(timing, result);
+                GDTaskPlayerLoopManager.AddAction(timing, result);
 
                 token = result.core.Version;
                 return result;
@@ -553,11 +429,11 @@ namespace GDTask
                     }
 
                     // skip in initial frame.
-                    if (initialFrame == Time.frameCount)
+                    if (initialFrame == Engine.GetFramesDrawn())
                     {
 #if DEBUG
                         // force use Realtime.
-                        if (PlayerLoopHelper.IsMainThread && !UnityEditor.EditorApplication.isPlaying)
+                        if (GDTaskPlayerLoopManager.IsMainThread && Engine.EditorHint)
                         {
                             //goto ++currentFrameCount
                         }
@@ -628,11 +504,11 @@ namespace GDTask
                 result.elapsed = 0.0f;
                 result.delayTimeSpan = (float)delayTimeSpan.TotalSeconds;
                 result.cancellationToken = cancellationToken;
-                result.initialFrame = PlayerLoopHelper.IsMainThread ? Time.frameCount : -1;
+                result.initialFrame = GDTaskPlayerLoopManager.IsMainThread ? Engine.GetFramesDrawn() : -1;
 
                 TaskTracker.TrackActiveTask(result, 3);
 
-                PlayerLoopHelper.AddAction(timing, result);
+                GDTaskPlayerLoopManager.AddAction(timing, result);
 
                 token = result.core.Version;
                 return result;
@@ -675,13 +551,13 @@ namespace GDTask
 
                 if (elapsed == 0.0f)
                 {
-                    if (initialFrame == Time.frameCount)
+                    if (initialFrame == Engine.GetFramesDrawn())
                     {
                         return true;
                     }
                 }
 
-                elapsed += Time.deltaTime;
+                elapsed += GDTaskPlayerLoopManager.Global.DeltaTime;
                 if (elapsed >= delayTimeSpan)
                 {
                     core.TrySetResult(null);
@@ -696,117 +572,6 @@ namespace GDTask
                 TaskTracker.RemoveTracking(this);
                 core.Reset();
                 delayTimeSpan = default;
-                elapsed = default;
-                cancellationToken = default;
-                return pool.TryPush(this);
-            }
-        }
-
-        sealed class DelayIgnoreTimeScalePromise : IGDTaskSource, IPlayerLoopItem, ITaskPoolNode<DelayIgnoreTimeScalePromise>
-        {
-            static TaskPool<DelayIgnoreTimeScalePromise> pool;
-            DelayIgnoreTimeScalePromise nextNode;
-            public ref DelayIgnoreTimeScalePromise NextNode => ref nextNode;
-
-            static DelayIgnoreTimeScalePromise()
-            {
-                TaskPool.RegisterSizeGetter(typeof(DelayIgnoreTimeScalePromise), () => pool.Size);
-            }
-
-            float delayFrameTimeSpan;
-            float elapsed;
-            int initialFrame;
-            CancellationToken cancellationToken;
-
-            GDTaskCompletionSourceCore<object> core;
-
-            DelayIgnoreTimeScalePromise()
-            {
-            }
-
-            public static IGDTaskSource Create(TimeSpan delayFrameTimeSpan, PlayerLoopTiming timing, CancellationToken cancellationToken, out short token)
-            {
-                if (cancellationToken.IsCancellationRequested)
-                {
-                    return AutoResetGDTaskCompletionSource.CreateFromCanceled(cancellationToken, out token);
-                }
-
-                if (!pool.TryPop(out var result))
-                {
-                    result = new DelayIgnoreTimeScalePromise();
-                }
-
-                result.elapsed = 0.0f;
-                result.delayFrameTimeSpan = (float)delayFrameTimeSpan.TotalSeconds;
-                result.initialFrame = PlayerLoopHelper.IsMainThread ? Time.frameCount : -1;
-                result.cancellationToken = cancellationToken;
-
-                TaskTracker.TrackActiveTask(result, 3);
-
-                PlayerLoopHelper.AddAction(timing, result);
-
-                token = result.core.Version;
-                return result;
-            }
-
-            public void GetResult(short token)
-            {
-                try
-                {
-                    core.GetResult(token);
-                }
-                finally
-                {
-                    TryReturn();
-                }
-            }
-
-            public GDTaskStatus GetStatus(short token)
-            {
-                return core.GetStatus(token);
-            }
-
-            public GDTaskStatus UnsafeGetStatus()
-            {
-                return core.UnsafeGetStatus();
-            }
-
-            public void OnCompleted(Action<object> continuation, object state, short token)
-            {
-                core.OnCompleted(continuation, state, token);
-            }
-
-            public bool MoveNext()
-            {
-                if (cancellationToken.IsCancellationRequested)
-                {
-                    core.TrySetCanceled(cancellationToken);
-                    return false;
-                }
-
-                if (elapsed == 0.0f)
-                {
-                    if (initialFrame == Time.frameCount)
-                    {
-                        return true;
-                    }
-                }
-
-                elapsed += Time.unscaledDeltaTime;
-                if (elapsed >= delayFrameTimeSpan)
-                {
-                    core.TrySetResult(null);
-                    return false;
-                }
-
-                return true;
-            }
-
-            bool TryReturn()
-            {
-                TaskTracker.RemoveTracking(this);
-                core.Reset();
-                delayFrameTimeSpan = default;
                 elapsed = default;
                 cancellationToken = default;
                 return pool.TryPush(this);
@@ -852,7 +617,7 @@ namespace GDTask
 
                 TaskTracker.TrackActiveTask(result, 3);
 
-                PlayerLoopHelper.AddAction(timing, result);
+                GDTaskPlayerLoopManager.AddAction(timing, result);
 
                 token = result.core.Version;
                 return result;
@@ -953,12 +718,12 @@ namespace GDTask
 
             public void OnCompleted(Action continuation)
             {
-                PlayerLoopHelper.AddContinuation(timing, continuation);
+                GDTaskPlayerLoopManager.AddContinuation(timing, continuation);
             }
 
             public void UnsafeOnCompleted(Action continuation)
             {
-                PlayerLoopHelper.AddContinuation(timing, continuation);
+                GDTaskPlayerLoopManager.AddContinuation(timing, continuation);
             }
         }
     }

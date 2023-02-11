@@ -1,5 +1,6 @@
 ﻿#pragma warning disable CS1591 // Missing XML comment for publicly visible type or member
 
+using Godot;
 using System;
 #if UNITY_2018_3_OR_NEWER
 using UnityEngine;
@@ -32,20 +33,13 @@ namespace GDTask.Internal
                 return WellKnownNoReferenceContainsTypeInitialize(t.GetGenericArguments()[0]);
             }
 
-#if UNITY_2018_3_OR_NEWER
-
             // or add other wellknown types(Vector, etc...) here
             if (t == typeof(Vector2)) return true;
             if (t == typeof(Vector3)) return true;
-            if (t == typeof(Vector4)) return true;
             if (t == typeof(Color)) return true;
-            if (t == typeof(Rect)) return true;
-            if (t == typeof(Bounds)) return true;
-            if (t == typeof(Quaternion)) return true;
-            if (t == typeof(Vector2Int)) return true;
-            if (t == typeof(Vector3Int)) return true;
-
-#endif
+            if (t == typeof(Rect2)) return true;
+            if (t == typeof(AABB)) return true;
+            if (t == typeof(Quat)) return true;
 
             return false;
         }

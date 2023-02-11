@@ -1,5 +1,6 @@
 ﻿#pragma warning disable CS1591 // Missing XML comment for publicly visible type or member
 
+using Godot;
 using System;
 using System.Collections.Generic;
 using System.Diagnostics;
@@ -238,7 +239,7 @@ namespace GDTask.Internal
             }
             else
             {
-                var fname = fi.FullName.Replace(Path.DirectorySeparatorChar, '/').Replace(PlayerLoopHelper.ApplicationDataPath, "");
+                var fname = fi.FullName.Replace(System.IO.Path.DirectorySeparatorChar, '/').Replace(ProjectSettings.GlobalizePath("res://"), "");
                 var withAssetsPath = "Assets/" + fname;
                 return "<a href=\"" + withAssetsPath + "\" line=\"" + line + "\">" + withAssetsPath + ":" + line + "</a>";
             }

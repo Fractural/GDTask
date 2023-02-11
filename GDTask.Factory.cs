@@ -5,6 +5,7 @@ using System;
 using System.Runtime.CompilerServices;
 using System.Runtime.ExceptionServices;
 using System.Threading;
+using GDTaskNamespace = GDTask;
 
 namespace GDTask
 {
@@ -489,7 +490,7 @@ namespace GDTask
 
     internal static class CompletedTasks
     {
-        public static readonly GDTask<AsyncUnit> AsyncUnit = GDTask.FromResult(GDTask.AsyncUnit.Default);
+        public static readonly GDTask<AsyncUnit> AsyncUnit = GDTask.FromResult(GDTaskNamespace.AsyncUnit.Default);
         public static readonly GDTask<bool> True = GDTask.FromResult(true);
         public static readonly GDTask<bool> False = GDTask.FromResult(false);
         public static readonly GDTask<int> Zero = GDTask.FromResult(0);
