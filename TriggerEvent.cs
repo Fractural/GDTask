@@ -27,11 +27,7 @@ namespace Fractural.Tasks
 
         void LogError(Exception ex)
         {
-#if UNITY_2018_3_OR_NEWER
             GD.PrintErr(ex);
-#else
-            Console.WriteLine(ex);
-#endif
         }
 
         public void SetResult(T value)

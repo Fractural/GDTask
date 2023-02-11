@@ -8,14 +8,13 @@ namespace Fractural.Tasks
 {
     public partial struct GDTask
     {
-#if UNITY_2018_3_OR_NEWER
 
         /// <summary>
         /// If running on mainthread, do nothing. Otherwise, same as GDTask.Yield(PlayerLoopTiming.Update).
         /// </summary>
         public static SwitchToMainThreadAwaitable SwitchToMainThread(CancellationToken cancellationToken = default)
         {
-            return new SwitchToMainThreadAwaitable(PlayerLoopTiming.Update, cancellationToken);
+            return new SwitchToMainThreadAwaitable(PlayerLoopTiming.Process, cancellationToken);
         }
 
         /// <summary>
@@ -31,7 +30,7 @@ namespace Fractural.Tasks
         /// </summary>
         public static ReturnToMainThread ReturnToMainThread(CancellationToken cancellationToken = default)
         {
-            return new ReturnToMainThread(PlayerLoopTiming.Update, cancellationToken);
+            return new ReturnToMainThread(PlayerLoopTiming.Process, cancellationToken);
         }
 
         /// <summary>
@@ -45,12 +44,11 @@ namespace Fractural.Tasks
         /// <summary>
         /// Queue the action to PlayerLoop.
         /// </summary>
-        public static void Post(Action action, PlayerLoopTiming timing = PlayerLoopTiming.Update)
+        public static void Post(Action action, PlayerLoopTiming timing = PlayerLoopTiming.Process)
         {
-            PlayerLoopHelper.AddContinuation(timing, action);
+            GDTaskPlayerLoopAutoload.AddContinuation(timing, action);
         }
 
-#endif
 
         public static SwitchToThreadPoolAwaitable SwitchToThreadPool()
         {
@@ -82,8 +80,6 @@ namespace Fractural.Tasks
         }
     }
 
-#if UNITY_2018_3_OR_NEWER
-
     public struct SwitchToMainThreadAwaitable
     {
         readonly PlayerLoopTiming playerLoopTiming;
@@ -113,7 +109,7 @@ namespace Fractural.Tasks
                 get
                 {
                     var currentThreadId = System.Threading.Thread.CurrentThread.ManagedThreadId;
-                    if (PlayerLoopHelper.MainThreadId == currentThreadId)
+                    if (GDTaskPlayerLoopAutoload.MainThreadId == currentThreadId)
                     {
                         return true; // run immediate.
                     }
@@ -128,12 +124,12 @@ namespace Fractural.Tasks
 
             public void OnCompleted(Action continuation)
             {
-                PlayerLoopHelper.AddContinuation(playerLoopTiming, continuation);
+                GDTaskPlayerLoopAutoload.AddContinuation(playerLoopTiming, continuation);
             }
 
             public void UnsafeOnCompleted(Action continuation)
             {
-                PlayerLoopHelper.AddContinuation(playerLoopTiming, continuation);
+                GDTaskPlayerLoopAutoload.AddContinuation(playerLoopTiming, continuation);
             }
         }
     }
@@ -167,23 +163,22 @@ namespace Fractural.Tasks
 
             public Awaiter GetAwaiter() => this;
 
-            public bool IsCompleted => PlayerLoopHelper.MainThreadId == System.Threading.Thread.CurrentThread.ManagedThreadId;
+            public bool IsCompleted => GDTaskPlayerLoopAutoload.MainThreadId == System.Threading.Thread.CurrentThread.ManagedThreadId;
 
             public void GetResult() { cancellationToken.ThrowIfCancellationRequested(); }
 
             public void OnCompleted(Action continuation)
             {
-                PlayerLoopHelper.AddContinuation(timing, continuation);
+                GDTaskPlayerLoopAutoload.AddContinuation(timing, continuation);
             }
 
             public void UnsafeOnCompleted(Action continuation)
             {
-                PlayerLoopHelper.AddContinuation(timing, continuation);
+                GDTaskPlayerLoopAutoload.AddContinuation(timing, continuation);
             }
         }
     }
 
-#endif
 
     public struct SwitchToThreadPoolAwaitable
     {
@@ -203,11 +198,7 @@ namespace Fractural.Tasks
 
             public void UnsafeOnCompleted(Action continuation)
             {
-#if NETCOREAPP3_1
-                ThreadPool.UnsafeQueueUserWorkItem(ThreadPoolWorkItem.Create(continuation), false);
-#else
                 ThreadPool.UnsafeQueueUserWorkItem(switchToCallback, continuation);
-#endif
             }
 
             static void Callback(object state)
@@ -216,48 +207,6 @@ namespace Fractural.Tasks
                 continuation();
             }
         }
-
-#if NETCOREAPP3_1
-
-        sealed class ThreadPoolWorkItem : IThreadPoolWorkItem, ITaskPoolNode<ThreadPoolWorkItem>
-        {
-            static TaskPool<ThreadPoolWorkItem> pool;
-            ThreadPoolWorkItem nextNode;
-            public ref ThreadPoolWorkItem NextNode => ref nextNode;
-
-            static ThreadPoolWorkItem()
-            {
-                TaskPool.RegisterSizeGetter(typeof(ThreadPoolWorkItem), () => pool.Size);
-            }
-
-            Action continuation;
-
-            [MethodImpl(MethodImplOptions.AggressiveInlining)]
-            public static ThreadPoolWorkItem Create(Action continuation)
-            {
-                if (!pool.TryPop(out var item))
-                {
-                    item = new ThreadPoolWorkItem();
-                }
-
-                item.continuation = continuation;
-                return item;
-            }
-
-            [MethodImpl(MethodImplOptions.AggressiveInlining)]
-            public void Execute()
-            {
-                var call = continuation;
-                continuation = null;
-                if (call != null)
-                {
-                    pool.TryPush(this);
-                    call.Invoke();
-                }
-            }
-        }
-
-#endif
     }
 
     public struct SwitchToTaskPoolAwaitable

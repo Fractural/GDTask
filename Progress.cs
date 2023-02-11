@@ -18,11 +18,7 @@ namespace Fractural.Tasks
         public static IProgress<T> CreateOnlyValueChanged<T>(Action<T> handler, IEqualityComparer<T> comparer = null)
         {
             if (handler == null) return NullProgress<T>.Instance;
-#if UNITY_2018_3_OR_NEWER
-            return new OnlyValueChangedProgress<T>(handler, comparer ?? UnityEqualityComparer.GetDefault<T>());
-#else
-            return new OnlyValueChangedProgress<T>(handler, comparer ?? EqualityComparer<T>.Default);
-#endif
+            return new OnlyValueChangedProgress<T>(handler, comparer ?? GodotEqualityComparer.GetDefault<T>());
         }
 
         sealed class NullProgress<T> : IProgress<T>
