@@ -7,5 +7,6 @@
   </ItemGroup>
   <ItemGroup>
     <Folder Include="addons\GDTask\CompilerServices\" />
+    <Folder Include="tests\manual\" />
   </ItemGroup>
 </Project>

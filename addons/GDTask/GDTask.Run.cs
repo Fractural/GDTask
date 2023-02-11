@@ -1,9 +1,7 @@
-﻿#pragma warning disable CS1591 // Missing XML comment for publicly visible type or member
-
-using System;
+﻿using System;
 using System.Threading;
 
-namespace GDTask
+namespace Fractural.Tasks
 {
     public partial struct GDTask
     {

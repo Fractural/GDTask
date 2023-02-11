@@ -2,7 +2,7 @@
 using System.Threading;
 using Godot;
 
-namespace GDTask
+namespace Fractural.Tasks
 {
     public interface ITriggerHandler<T>
     {

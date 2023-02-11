@@ -1,13 +1,10 @@
-﻿#pragma warning disable CS1591 // Missing XML comment for publicly visible type or member
-
-using GDTask.Internal;
+﻿using Fractural.Tasks.Internal;
 using System;
 using System.Runtime.CompilerServices;
 using System.Runtime.ExceptionServices;
 using System.Threading;
-using GDTaskNamespace = GDTask;
 
-namespace GDTask
+namespace Fractural.Tasks
 {
     public partial struct GDTask
     {
@@ -490,7 +487,7 @@ namespace GDTask
 
     internal static class CompletedTasks
     {
-        public static readonly GDTask<AsyncUnit> AsyncUnit = GDTask.FromResult(GDTaskNamespace.AsyncUnit.Default);
+        public static readonly GDTask<AsyncUnit> AsyncUnit = GDTask.FromResult(Fractural.Tasks.AsyncUnit.Default);
         public static readonly GDTask<bool> True = GDTask.FromResult(true);
         public static readonly GDTask<bool> False = GDTask.FromResult(false);
         public static readonly GDTask<int> Zero = GDTask.FromResult(0);

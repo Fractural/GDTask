@@ -2,7 +2,7 @@
 using System.Collections.Concurrent;
 using System.Runtime.CompilerServices;
 
-namespace GDTask.Internal
+namespace Fractural.Tasks.Internal
 {
     internal static class StateTuple
     {

@@ -1,11 +1,9 @@
-﻿#pragma warning disable CS1591 // Missing XML comment for publicly visible type or member
-
-using System.Threading;
+﻿using System.Threading;
 using System;
-using GDTask.Internal;
+using Fractural.Tasks.Internal;
 using Godot;
 
-namespace GDTask
+namespace Fractural.Tasks
 {
     public abstract class PlayerLoopTimer : IDisposable, IPlayerLoopItem
     {
@@ -32,7 +30,7 @@ namespace GDTask
         {
 #if DEBUG
             // force use Realtime.
-            if (GDTaskPlayerLoopManager.IsMainThread && Engine.EditorHint)
+            if (GDTaskPlayerLoopAutoload.IsMainThread && Engine.EditorHint)
             {
                 delayType = DelayType.Realtime;
             }
@@ -66,7 +64,7 @@ namespace GDTask
             if (!isRunning)
             {
                 isRunning = true;
-                GDTaskPlayerLoopManager.AddAction(playerLoopTiming, this);
+                GDTaskPlayerLoopAutoload.AddAction(playerLoopTiming, this);
             }
             tryStop = false;
         }
@@ -82,7 +80,7 @@ namespace GDTask
             if (!isRunning)
             {
                 isRunning = true;
-                GDTaskPlayerLoopManager.AddAction(playerLoopTiming, this);
+                GDTaskPlayerLoopAutoload.AddAction(playerLoopTiming, this);
             }
             tryStop = false;
         }
@@ -164,7 +162,7 @@ namespace GDTask
                 }
             }
 
-            elapsed += GDTaskPlayerLoopManager.Global.DeltaTime;
+            elapsed += GDTaskPlayerLoopAutoload.Global.DeltaTime;
             if (elapsed >= interval)
             {
                 return false;
@@ -176,7 +174,7 @@ namespace GDTask
         protected override void ResetCore(TimeSpan? interval)
         {
             this.elapsed = 0.0f;
-            this.initialFrame = GDTaskPlayerLoopManager.IsMainThread ? Engine.GetFramesDrawn() : -1;
+            this.initialFrame = GDTaskPlayerLoopAutoload.IsMainThread ? Engine.GetFramesDrawn() : -1;
             if (interval != null)
             {
                 this.interval = (float)interval.Value.TotalSeconds;

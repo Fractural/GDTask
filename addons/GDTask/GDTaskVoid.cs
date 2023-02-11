@@ -4,9 +4,9 @@
 using System;
 using System.Diagnostics;
 using System.Runtime.CompilerServices;
-using GDTask.CompilerServices;
+using Fractural.Tasks.CompilerServices;
 
-namespace GDTask
+namespace Fractural.Tasks
 {
     [AsyncMethodBuilder(typeof(AsyncGDTaskVoidMethodBuilder))]
     public readonly struct GDTaskVoid

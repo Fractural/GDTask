@@ -1,10 +1,8 @@
-﻿#pragma warning disable CS1591 // Missing XML comment for publicly visible type or member
-
-using System;
+﻿using System;
 using System.Threading;
 using Godot;
 
-namespace GDTask
+namespace Fractural.Tasks
 {
     // GDTask has no scheduler like TaskScheduler.
     // Only handle unobserved exception.

@@ -1,6 +1,4 @@
-﻿#pragma warning disable CS1591 // Missing XML comment for publicly visible type or member
-
-using Godot;
+﻿using Godot;
 using System;
 using System.Collections.Generic;
 using System.Diagnostics;
@@ -14,7 +12,7 @@ using System.Text;
 using System.Text.RegularExpressions;
 using System.Threading.Tasks;
 
-namespace GDTask.Internal
+namespace Fractural.Tasks.Internal
 {
     internal static class DiagnosticsExtensions
     {

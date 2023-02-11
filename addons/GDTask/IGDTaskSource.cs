@@ -1,7 +1,7 @@
 ﻿using System;
 using System.Runtime.CompilerServices;
 
-namespace GDTask
+namespace Fractural.Tasks
 {
     public enum GDTaskStatus
     {

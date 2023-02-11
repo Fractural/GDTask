@@ -1,12 +1,10 @@
-﻿#pragma warning disable CS1591 // Missing XML comment for publicly visible type or member
-
-using System;
+﻿using System;
 using System.Linq;
-using GDTask.Internal;
+using Fractural.Tasks.Internal;
 using System.Threading;
 using Godot;
 
-namespace GDTask
+namespace Fractural.Tasks
 {
     public static class GDTaskLoopRunners
     {
@@ -16,8 +14,8 @@ namespace GDTask
 
     public enum PlayerLoopTiming
     {
-        Process = 1,
-        PhysicsProcess = 2,
+        Process = 0,
+        PhysicsProcess = 1,
     }
 
     [Flags]
@@ -53,7 +51,7 @@ namespace GDTask
     /// <summary>
     /// Singleton that forwards Godot calls and values to GDTasks.
     /// </summary>
-    public class GDTaskPlayerLoopManager : Node
+    public class GDTaskPlayerLoopAutoload : Node
     {
         public static int MainThreadId => Global.mainThreadId;
         public static bool IsMainThread => System.Threading.Thread.CurrentThread.ManagedThreadId == Global.mainThreadId;
@@ -82,7 +80,7 @@ namespace GDTask
             q.Enqueue(continuation);
         }
 
-        public static GDTaskPlayerLoopManager Global { get; private set; }
+        public static GDTaskPlayerLoopAutoload Global { get; private set; }
         public float DeltaTime => GetProcessDeltaTime();
         public float PhysicsDeltaTime => GetPhysicsProcessDeltaTime();
 
@@ -128,14 +126,14 @@ namespace GDTask
 
         public override void _Process(float delta)
         {
-            yielders[0].Run();
-            runners[0].Run();
+            yielders[(int) PlayerLoopTiming.Process].Run();
+            runners[(int) PlayerLoopTiming.Process].Run();
         }
 
         public override void _PhysicsProcess(float delta)
         {
-            yielders[1].Run();
-            runners[1].Run();
+            yielders[(int) PlayerLoopTiming.PhysicsProcess].Run();
+            runners[(int) PlayerLoopTiming.PhysicsProcess].Run();
         }
     }
 }

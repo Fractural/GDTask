@@ -39,8 +39,14 @@ Display=8
 [application]
 
 config/name="GDTask"
+run/main_scene="res://tests/manual/Test.tscn"
 boot_splash/image="res://bootsplash.png"
+boot_splash/bg_color=Color( 0, 0, 0, 1 )
 config/icon="res://icon.png"
+
+[autoload]
+
+GdTaskPlayerLoopAutoload="*res://addons/GDTask/Autoload/GDTaskPlayerLoopAutoload.cs"
 
 [editor_plugins]
 

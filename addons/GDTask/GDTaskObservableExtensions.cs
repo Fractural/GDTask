@@ -1,11 +1,9 @@
-﻿#pragma warning disable CS1591 // Missing XML comment for publicly visible type or member
-
-using System;
+﻿using System;
 using System.Runtime.ExceptionServices;
 using System.Threading;
-using GDTask.Internal;
+using Fractural.Tasks.Internal;
 
-namespace GDTask
+namespace Fractural.Tasks
 {
     public static class GDTaskObservableExtensions
     {
@@ -285,7 +283,7 @@ namespace GDTask
     }
 }
 
-namespace GDTask.Internal
+namespace Fractural.Tasks.Internal
 {
     // Bridges for Rx.
 
@@ -523,7 +521,7 @@ namespace GDTask.Internal
         {
             if (isDisposed) throw new ObjectDisposedException("");
         }
-        
+
         class Subscription : IDisposable
         {
             readonly object gate = new object();

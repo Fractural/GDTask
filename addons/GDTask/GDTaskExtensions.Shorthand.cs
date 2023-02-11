@@ -1,12 +1,12 @@
 ﻿#pragma warning disable CS1591 // Missing XML comment for publicly visible type or member
 using System.Collections.Generic;
 
-namespace GDTask
+namespace Fractural.Tasks
 {
     public static partial class GDTaskExtensions
     {
         // shorthand of WhenAll
-    
+
         public static GDTask.Awaiter GetAwaiter(this GDTask[] tasks)
         {
             return GDTask.WhenAll(tasks).GetAwaiter();

@@ -1,4 +1,5 @@
 using Godot;
+using Fractural.Tasks;
 
 namespace Tests
 {

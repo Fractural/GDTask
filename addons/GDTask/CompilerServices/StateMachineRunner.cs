@@ -5,7 +5,7 @@ using System.Linq;
 using System.Diagnostics;
 using System.Runtime.CompilerServices;
 
-namespace GDTask.CompilerServices
+namespace Fractural.Tasks.CompilerServices
 {
     // #ENABLE_IL2CPP in this file is to avoid bug of IL2CPP VM.
     // Issue is tracked on https://issuetracker.unity3d.com/issues/il2cpp-incorrect-results-when-calling-a-method-from-outside-class-in-a-struct
