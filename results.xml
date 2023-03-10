@@ -1,0 +1,7 @@
+<?xml version="1.0" ?>
+<testsuites failures="0" name="TestXML" tests="1" time="3.519">
+	<testsuite name="GDTaskTests" failures="0"  tests="1" time="0">
+		<testcase name="TODO Make Tests" time="0"></testcase>
+	</testsuite>
+
+</testsuites>
