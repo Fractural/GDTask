@@ -1,4 +1,4 @@
-﻿using System;
+using System;
 using System.Collections.Generic;
 using System.Diagnostics;
 using System.Runtime.CompilerServices;
@@ -314,7 +314,7 @@ namespace Fractural.Tasks
         }
     }
 
-    public class AutoResetGDTaskCompletionSource : IGDTaskSource, ITaskPoolNode<AutoResetGDTaskCompletionSource>, IPromise
+    public partial class AutoResetGDTaskCompletionSource : IGDTaskSource, ITaskPoolNode<AutoResetGDTaskCompletionSource>, IPromise
     {
         static TaskPool<AutoResetGDTaskCompletionSource> pool;
         AutoResetGDTaskCompletionSource nextNode;
@@ -437,7 +437,7 @@ namespace Fractural.Tasks
         }
     }
 
-    public class AutoResetGDTaskCompletionSource<T> : IGDTaskSource<T>, ITaskPoolNode<AutoResetGDTaskCompletionSource<T>>, IPromise<T>
+    public partial class AutoResetGDTaskCompletionSource<T> : IGDTaskSource<T>, ITaskPoolNode<AutoResetGDTaskCompletionSource<T>>, IPromise<T>
     {
         static TaskPool<AutoResetGDTaskCompletionSource<T>> pool;
         AutoResetGDTaskCompletionSource<T> nextNode;
@@ -565,7 +565,7 @@ namespace Fractural.Tasks
         }
     }
 
-    public class GDTaskCompletionSource : IGDTaskSource, IPromise
+    public partial class GDTaskCompletionSource : IGDTaskSource, IPromise
     {
         CancellationToken cancellationToken;
         ExceptionHolder exception;
@@ -746,7 +746,7 @@ namespace Fractural.Tasks
         }
     }
 
-    public class GDTaskCompletionSource<T> : IGDTaskSource<T>, IPromise<T>
+    public partial class GDTaskCompletionSource<T> : IGDTaskSource<T>, IPromise<T>
     {
         CancellationToken cancellationToken;
         T result;

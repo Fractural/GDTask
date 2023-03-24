@@ -4,7 +4,7 @@ using Godot;
 
 namespace Fractural.Tasks.Triggers
 {
-    public abstract class AsyncTriggerBase<T> : Node
+    public abstract partial class AsyncTriggerBase<T> : Node
     {
         TriggerEvent<T> triggerEvent;
 

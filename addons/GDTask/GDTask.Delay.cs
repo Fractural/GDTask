@@ -133,7 +133,7 @@ namespace Fractural.Tasks
 
 #if DEBUG
             // force use Realtime.
-            if (GDTaskPlayerLoopAutoload.IsMainThread && Engine.EditorHint)
+            if (GDTaskPlayerLoopAutoload.IsMainThread && Engine.IsEditorHint())
             {
                 delayType = DelayType.Realtime;
             }
@@ -431,7 +431,7 @@ namespace Fractural.Tasks
                     {
 #if DEBUG
                         // force use Realtime.
-                        if (GDTaskPlayerLoopAutoload.IsMainThread && Engine.EditorHint)
+                        if (GDTaskPlayerLoopAutoload.IsMainThread && Engine.IsEditorHint())
                         {
                             //goto ++currentFrameCount
                         }
@@ -477,8 +477,8 @@ namespace Fractural.Tasks
             }
 
             int initialFrame;
-            float delayTimeSpan;
-            float elapsed;
+            double delayTimeSpan;
+            double elapsed;
             CancellationToken cancellationToken;
 
             GDTaskCompletionSourceCore<object> core;
