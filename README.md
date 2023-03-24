@@ -5,6 +5,8 @@
 Adds async/await features in Godot for easier async coding.
 Based on code from [Cysharp's UniTask library for Unity](https://github.com/Cysharp/UniTask).
 
+Now for Godot 4.0!
+
 ```CSharp
 using Fractural.Tasks;
 
