@@ -1,3 +1,6 @@
+# Godot 4+ specific ignores
+.godot/
+
 # Godot-specific ignores
 .import/
 export.cfg
@@ -6,6 +9,9 @@ export_presets.cfg
 # Mono-specific ignores
 .mono/
 data_*/
+
+# IntelliJ
+.idea/
 
 # VSCode Settings 
 .vscode/
@@ -22,3 +28,6 @@ obj/
 # Tests
 tests/results.xml
 tests/metadata.json
+
+# MacOS
+.DS_Store
