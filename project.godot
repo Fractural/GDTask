@@ -39,7 +39,7 @@ project/assembly_name="GDTask"
 
 [editor_plugins]
 
-enabled=PackedStringArray("res://addons/WAT/plugin.cfg")
+enabled=PackedStringArray()
 
 [gui]
 
