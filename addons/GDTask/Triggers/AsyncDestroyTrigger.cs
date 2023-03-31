@@ -11,7 +11,7 @@ namespace Fractural.Tasks.Triggers
         }
     }
 
-    public sealed class AsyncDestroyTrigger : Node
+    public sealed partial class AsyncDestroyTrigger : Node
     {
         bool awakeCalled = false;
         bool called = false;

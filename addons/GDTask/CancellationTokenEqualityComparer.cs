@@ -1,9 +1,9 @@
-﻿using System.Collections.Generic;
+using System.Collections.Generic;
 using System.Threading;
 
 namespace Fractural.Tasks
 {
-    public class CancellationTokenEqualityComparer : IEqualityComparer<CancellationToken>
+    public partial class CancellationTokenEqualityComparer : IEqualityComparer<CancellationToken>
     {
         public static readonly IEqualityComparer<CancellationToken> Default = new CancellationTokenEqualityComparer();
 

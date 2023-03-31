@@ -5,15 +5,15 @@ using System.Threading;
 
 namespace Tests.Manual
 {
-    public class Test : Node2D
+    public partial class Test : Node2D
     {
         [Export]
         private NodePath spritePath;
-        public Sprite sprite;
+        public Sprite2D sprite;
 
         public override void _Ready()
         {
-            sprite = GetNode<Sprite>(spritePath);
+            sprite = GetNode<Sprite2D>(spritePath);
         }
 
 

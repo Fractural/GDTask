@@ -27,9 +27,9 @@ namespace Fractural.Tasks.Triggers
         }
     }
 
-    public sealed class AsyncPhysicsProcessTrigger : AsyncTriggerBase<AsyncUnit>
+    public sealed partial class AsyncPhysicsProcessTrigger : AsyncTriggerBase<AsyncUnit>
     {
-        public override void _PhysicsProcess(float delta)
+        public override void _PhysicsProcess(double delta)
         {
             RaiseEvent(AsyncUnit.Default);
         }
@@ -80,9 +80,9 @@ namespace Fractural.Tasks.Triggers
         }
     }
 
-    public sealed class AsyncProcessTrigger : AsyncTriggerBase<AsyncUnit>
+    public sealed partial class AsyncProcessTrigger : AsyncTriggerBase<AsyncUnit>
     {
-        public override void _Process(float delta)
+        public override void _Process(double delta)
         {
             RaiseEvent(AsyncUnit.Default);
         }

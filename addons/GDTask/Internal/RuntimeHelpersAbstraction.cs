@@ -33,8 +33,8 @@ namespace Fractural.Tasks.Internal
             if (t == typeof(Vector3)) return true;
             if (t == typeof(Color)) return true;
             if (t == typeof(Rect2)) return true;
-            if (t == typeof(AABB)) return true;
-            if (t == typeof(Quat)) return true;
+            if (t == typeof(Aabb)) return true;
+            if (t == typeof(Quaternion)) return true;
 
             return false;
         }

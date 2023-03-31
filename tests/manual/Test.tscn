@@ -1,14 +1,13 @@
-[gd_scene load_steps=3 format=2]
+[gd_scene load_steps=3 format=3 uid="uid://cfm0u7eao06ff"]
 
-[ext_resource path="res://tests/manual/Test.cs" type="Script" id=1]
-[ext_resource path="res://icon.png" type="Texture" id=2]
+[ext_resource type="Script" path="res://tests/manual/Test.cs" id="1"]
+[ext_resource type="Texture2D" uid="uid://cw01ge0bgos8m" path="res://icon.png" id="2"]
 
 [node name="Test" type="Node2D"]
-script = ExtResource( 1 )
-spritePath = NodePath("Sprite")
+script = ExtResource("1")
+spritePath = NodePath("Sprite2D")
 
-[node name="Sprite" type="Sprite" parent="."]
-texture = ExtResource( 2 )
+[node name="Sprite2D" type="Sprite2D" parent="."]
+texture = ExtResource("2")
 
 [node name="Camera2D" type="Camera2D" parent="."]
-current = true

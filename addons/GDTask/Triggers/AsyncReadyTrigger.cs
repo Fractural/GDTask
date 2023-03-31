@@ -10,7 +10,7 @@ namespace Fractural.Tasks.Triggers
         }
     }
 
-    public sealed class AsyncReadyTrigger : AsyncTriggerBase<AsyncUnit>
+    public sealed partial class AsyncReadyTrigger : AsyncTriggerBase<AsyncUnit>
     {
         bool called;
 

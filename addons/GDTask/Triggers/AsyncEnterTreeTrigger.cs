@@ -11,7 +11,7 @@ namespace Fractural.Tasks.Triggers
         }
     }
 
-    public sealed class AsyncEnterTreeTrigger : AsyncTriggerBase<AsyncUnit>
+    public sealed partial class AsyncEnterTreeTrigger : AsyncTriggerBase<AsyncUnit>
     {
         public GDTask AwakeAsync()
         {

@@ -51,7 +51,7 @@ namespace Fractural.Tasks
     /// <summary>
     /// Singleton that forwards Godot calls and values to GDTasks.
     /// </summary>
-    public class GDTaskPlayerLoopAutoload : Node
+    public partial class GDTaskPlayerLoopAutoload : Node
     {
         public static int MainThreadId => Global.mainThreadId;
         public static bool IsMainThread => System.Threading.Thread.CurrentThread.ManagedThreadId == Global.mainThreadId;
@@ -81,8 +81,8 @@ namespace Fractural.Tasks
         }
 
         public static GDTaskPlayerLoopAutoload Global { get; private set; }
-        public float DeltaTime => GetProcessDeltaTime();
-        public float PhysicsDeltaTime => GetPhysicsProcessDeltaTime();
+        public double DeltaTime => GetProcessDeltaTime();
+        public double PhysicsDeltaTime => GetPhysicsProcessDeltaTime();
 
         private int mainThreadId;
         private ContinuationQueue[] yielders;
@@ -124,13 +124,13 @@ namespace Fractural.Tasks
             }
         }
 
-        public override void _Process(float delta)
+        public override void _Process(double delta)
         {
             yielders[(int) PlayerLoopTiming.Process].Run();
             runners[(int) PlayerLoopTiming.Process].Run();
         }
 
-        public override void _PhysicsProcess(float delta)
+        public override void _PhysicsProcess(double delta)
         {
             yielders[(int) PlayerLoopTiming.PhysicsProcess].Run();
             runners[(int) PlayerLoopTiming.PhysicsProcess].Run();
