@@ -80,23 +80,44 @@ namespace Fractural.Tasks
             q.Enqueue(continuation);
         }
 
-        public static GDTaskPlayerLoopAutoload Global { get; private set; }
+        public static GDTaskPlayerLoopAutoload Global
+        {
+            get
+            {
+                if (s_Global != null) return s_Global;
+                
+                var newInstance = new GDTaskPlayerLoopAutoload();
+                newInstance.Initialize();
+                var currentScene = ((SceneTree)Engine.GetMainLoop()).CurrentScene;
+                currentScene.AddChild(newInstance);
+                currentScene.MoveChild(newInstance, 0);
+                newInstance.Name = "GDTaskPlayerLoopAutoload";
+                s_Global = newInstance;
+
+                return s_Global;
+            }
+        }
         public double DeltaTime => GetProcessDeltaTime();
         public double PhysicsDeltaTime => GetPhysicsProcessDeltaTime();
 
+        private static GDTaskPlayerLoopAutoload s_Global;
         private int mainThreadId;
         private ContinuationQueue[] yielders;
         private PlayerLoopRunner[] runners;
 
         public override void _Ready()
         {
-            if (Global != null)
+            if (s_Global == null)
             {
-                QueueFree();
+                Initialize();
+                s_Global = this;
                 return;
             }
-            Global = this;
+            QueueFree();
+        }
 
+        private void Initialize()
+        {
             mainThreadId = System.Threading.Thread.CurrentThread.ManagedThreadId;
             yielders = new[] {
                 new ContinuationQueue(PlayerLoopTiming.Process),
@@ -113,7 +134,7 @@ namespace Fractural.Tasks
             if (what == NotificationPredelete)
             {
                 if (Global == this)
-                    Global = null;
+                    s_Global = null;
                 if (yielders != null)
                 {
                     foreach (var yielder in yielders)
