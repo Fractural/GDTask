@@ -29,10 +29,6 @@ boot_splash/bg_color=Color(0, 0, 0, 1)
 boot_splash/image="res://bootsplash.png"
 config/icon="res://icon.png"
 
-[autoload]
-
-GdTaskPlayerLoopAutoload="*res://addons/GDTask/Autoload/GDTaskPlayerLoopAutoload.cs"
-
 [dotnet]
 
 project/assembly_name="GDTask"
