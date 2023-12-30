@@ -4,9 +4,9 @@ on: [push, pull_request]
 
 jobs:
   Tests:
-    name: Run All Tests on 3.5
+    name: Run All Tests on 4.2
     runs-on: ubuntu-latest
-    container: barichello/godot-ci:mono-3.5
+    container: barichello/godot-ci:mono-4.2
     steps:
       - name: Checkout Repository
         uses: actions/checkout@v3
