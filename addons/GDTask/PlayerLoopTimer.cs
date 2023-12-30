@@ -142,7 +142,8 @@ namespace Fractural.Tasks
 
     sealed class DeltaTimePlayerLoopTimer : PlayerLoopTimer
     {
-        int initialFrame;
+        bool isMainThread;
+        ulong initialFrame;
         double elapsed;
         double interval;
 
@@ -156,7 +157,7 @@ namespace Fractural.Tasks
         {
             if (elapsed == 0.0)
             {
-                if (initialFrame == Engine.GetFramesDrawn())
+                if (isMainThread && initialFrame == Engine.GetProcessFrames())
                 {
                     return true;
                 }
@@ -174,7 +175,9 @@ namespace Fractural.Tasks
         protected override void ResetCore(TimeSpan? interval)
         {
             this.elapsed = 0.0;
-            this.initialFrame = GDTaskPlayerLoopAutoload.IsMainThread ? Engine.GetFramesDrawn() : -1;
+            this.isMainThread = GDTaskPlayerLoopAutoload.IsMainThread;
+            if (this.isMainThread)
+                this.initialFrame = Engine.GetProcessFrames();
             if (interval != null)
             {
                 this.interval = (float)interval.Value.TotalSeconds;
