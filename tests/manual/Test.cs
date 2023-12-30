@@ -8,14 +8,17 @@ namespace Tests.Manual
     public partial class Test : Node2D
     {
         [Export]
+        private bool runTestOnReady;
+        [Export]
         private NodePath spritePath;
         public Sprite2D sprite;
 
         public override void _Ready()
         {
             sprite = GetNode<Sprite2D>(spritePath);
+            if (runTestOnReady)
+                Run().Forget();
         }
-
 
         public override void _Input(InputEvent @event)
         {

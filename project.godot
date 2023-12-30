@@ -24,7 +24,7 @@ Display=8
 
 config/name="GDTask"
 run/main_scene="res://tests/manual/Test.tscn"
-config/features=PackedStringArray("4.0", "C#")
+config/features=PackedStringArray("4.2", "C#")
 boot_splash/bg_color=Color(0, 0, 0, 1)
 boot_splash/image="res://bootsplash.png"
 config/icon="res://icon.png"
