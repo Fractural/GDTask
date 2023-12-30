@@ -176,7 +176,8 @@ namespace Fractural.Tasks
         {
             this.elapsed = 0.0;
             this.isMainThread = GDTaskPlayerLoopAutoload.IsMainThread;
-            this.initialFrame = Engine.GetProcessFrames();
+            if (this.isMainThread)
+                this.initialFrame = Engine.GetProcessFrames();
             if (interval != null)
             {
                 this.interval = (float)interval.Value.TotalSeconds;
