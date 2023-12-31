@@ -21,7 +21,7 @@ jobs:
           cp /usr/local/bin/GodotSharp/Api/Release/* .mono/assemblies/Debug
 
       - name: Compile
-        run: msbuild
+        run: dotnet build
 
       - name: Run
         run: godot addons/WAT/cli.tscn run=all
