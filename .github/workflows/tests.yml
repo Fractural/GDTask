@@ -6,7 +6,8 @@ jobs:
   Tests:
     name: Run All Tests on 4.2
     runs-on: ubuntu-latest
-    container: barichello/godot-ci:mono-4.2
+    # TODO: Replace with barichello after this PR (https://github.com/abarichello/godot-ci/pull/106) gets merged
+    container: adrasteondev/godot-ci:mono-4.2
     steps:
       - name: Checkout Repository
         uses: actions/checkout@v3

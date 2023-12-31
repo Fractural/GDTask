@@ -1,28 +1,19 @@
-﻿
-Microsoft Visual Studio Solution File, Format Version 12.00
-# Visual Studio Version 16
-VisualStudioVersion = 16.0.32630.194
-MinimumVisualStudioVersion = 10.0.40219.1
-Project("{9A19103F-16F7-4668-BE54-9A1E7A4F7556}") = "GDTask", "GDTask.csproj", "{CD948EAF-E39E-45E7-A13E-7A74700EFFF1}"
+﻿Microsoft Visual Studio Solution File, Format Version 12.00
+# Visual Studio 2012
+Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "GDTask", "GDTask.csproj", "{2A00429B-5E6F-4AC6-AF6C-8CA6070444BE}"
 EndProject
 Global
 	GlobalSection(SolutionConfigurationPlatforms) = preSolution
-		Debug|Any CPU = Debug|Any CPU
-		ExportDebug|Any CPU = ExportDebug|Any CPU
-		ExportRelease|Any CPU = ExportRelease|Any CPU
+	Debug|Any CPU = Debug|Any CPU
+	ExportDebug|Any CPU = ExportDebug|Any CPU
+	ExportRelease|Any CPU = ExportRelease|Any CPU
 	EndGlobalSection
 	GlobalSection(ProjectConfigurationPlatforms) = postSolution
-		{CD948EAF-E39E-45E7-A13E-7A74700EFFF1}.Debug|Any CPU.ActiveCfg = Debug|Any CPU
-		{CD948EAF-E39E-45E7-A13E-7A74700EFFF1}.Debug|Any CPU.Build.0 = Debug|Any CPU
-		{CD948EAF-E39E-45E7-A13E-7A74700EFFF1}.ExportDebug|Any CPU.ActiveCfg = ExportDebug|Any CPU
-		{CD948EAF-E39E-45E7-A13E-7A74700EFFF1}.ExportDebug|Any CPU.Build.0 = ExportDebug|Any CPU
-		{CD948EAF-E39E-45E7-A13E-7A74700EFFF1}.ExportRelease|Any CPU.ActiveCfg = ExportRelease|Any CPU
-		{CD948EAF-E39E-45E7-A13E-7A74700EFFF1}.ExportRelease|Any CPU.Build.0 = ExportRelease|Any CPU
-	EndGlobalSection
-	GlobalSection(SolutionProperties) = preSolution
-		HideSolutionNode = FALSE
-	EndGlobalSection
-	GlobalSection(ExtensibilityGlobals) = postSolution
-		SolutionGuid = {8B0106CE-747F-4EF9-BA0F-6220BBDA9D55}
+		{2A00429B-5E6F-4AC6-AF6C-8CA6070444BE}.Debug|Any CPU.ActiveCfg = Debug|Any CPU
+		{2A00429B-5E6F-4AC6-AF6C-8CA6070444BE}.Debug|Any CPU.Build.0 = Debug|Any CPU
+		{2A00429B-5E6F-4AC6-AF6C-8CA6070444BE}.ExportDebug|Any CPU.ActiveCfg = ExportDebug|Any CPU
+		{2A00429B-5E6F-4AC6-AF6C-8CA6070444BE}.ExportDebug|Any CPU.Build.0 = ExportDebug|Any CPU
+		{2A00429B-5E6F-4AC6-AF6C-8CA6070444BE}.ExportRelease|Any CPU.ActiveCfg = ExportRelease|Any CPU
+		{2A00429B-5E6F-4AC6-AF6C-8CA6070444BE}.ExportRelease|Any CPU.Build.0 = ExportRelease|Any CPU
 	EndGlobalSection
 EndGlobal
