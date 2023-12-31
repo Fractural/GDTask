@@ -24,7 +24,7 @@ jobs:
         run: dotnet build
 
       - name: Run
-        run: godot addons/WAT/cli.tscn run=all
+        run: godot addons/WAT/cli.tscn --headless run=all
 
       - name: Upload Test Results
         if: always()
