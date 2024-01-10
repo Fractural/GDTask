@@ -486,6 +486,7 @@ namespace Fractural.Tasks
             ulong initialFrame;
             double delayTimeSpan;
             double elapsed;
+            PlayerLoopTiming timing;
             CancellationToken cancellationToken;
 
             GDTaskCompletionSourceCore<object> core;
@@ -510,6 +511,7 @@ namespace Fractural.Tasks
                 result.delayTimeSpan = (float)delayTimeSpan.TotalSeconds;
                 result.cancellationToken = cancellationToken;
                 result.isMainThread = GDTaskPlayerLoopAutoload.IsMainThread;
+                result.timing = timing;
                 if (result.isMainThread)
                     result.initialFrame = Engine.GetProcessFrames();
 
@@ -564,7 +566,11 @@ namespace Fractural.Tasks
                     }
                 }
 
-                elapsed += GDTaskPlayerLoopAutoload.Global.DeltaTime;
+                if (timing == PlayerLoopTiming.Process)
+                    elapsed += GDTaskPlayerLoopAutoload.Global.DeltaTime;
+                else
+                    elapsed += GDTaskPlayerLoopAutoload.Global.PhysicsDeltaTime;
+                
                 if (elapsed >= delayTimeSpan)
                 {
                     core.TrySetResult(null);
