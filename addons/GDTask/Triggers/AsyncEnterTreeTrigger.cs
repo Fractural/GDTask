@@ -13,6 +13,12 @@ namespace Fractural.Tasks.Triggers
 
     public sealed partial class AsyncEnterTreeTrigger : AsyncTriggerBase<AsyncUnit>
     {
+        public override void _EnterTree()
+        {
+            base._EnterTree();
+            RaiseEvent(AsyncUnit.Default);
+        }
+
         public GDTask AwakeAsync()
         {
             if (calledEnterTree) return GDTask.CompletedTask;
