@@ -1,6 +1,6 @@
 ﻿Microsoft Visual Studio Solution File, Format Version 12.00
 # Visual Studio 2012
-Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "GDTask", "GDTask.csproj", "{2A00429B-5E6F-4AC6-AF6C-8CA6070444BE}"
+Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "GDTask", "GDTask.csproj", "{CEF6A453-1034-46B7-9617-C94E19891B46}"
 EndProject
 Global
 	GlobalSection(SolutionConfigurationPlatforms) = preSolution
@@ -9,11 +9,11 @@ Global
 	ExportRelease|Any CPU = ExportRelease|Any CPU
 	EndGlobalSection
 	GlobalSection(ProjectConfigurationPlatforms) = postSolution
-		{2A00429B-5E6F-4AC6-AF6C-8CA6070444BE}.Debug|Any CPU.ActiveCfg = Debug|Any CPU
-		{2A00429B-5E6F-4AC6-AF6C-8CA6070444BE}.Debug|Any CPU.Build.0 = Debug|Any CPU
-		{2A00429B-5E6F-4AC6-AF6C-8CA6070444BE}.ExportDebug|Any CPU.ActiveCfg = ExportDebug|Any CPU
-		{2A00429B-5E6F-4AC6-AF6C-8CA6070444BE}.ExportDebug|Any CPU.Build.0 = ExportDebug|Any CPU
-		{2A00429B-5E6F-4AC6-AF6C-8CA6070444BE}.ExportRelease|Any CPU.ActiveCfg = ExportRelease|Any CPU
-		{2A00429B-5E6F-4AC6-AF6C-8CA6070444BE}.ExportRelease|Any CPU.Build.0 = ExportRelease|Any CPU
+		{CEF6A453-1034-46B7-9617-C94E19891B46}.Debug|Any CPU.ActiveCfg = Debug|Any CPU
+		{CEF6A453-1034-46B7-9617-C94E19891B46}.Debug|Any CPU.Build.0 = Debug|Any CPU
+		{CEF6A453-1034-46B7-9617-C94E19891B46}.ExportDebug|Any CPU.ActiveCfg = ExportDebug|Any CPU
+		{CEF6A453-1034-46B7-9617-C94E19891B46}.ExportDebug|Any CPU.Build.0 = ExportDebug|Any CPU
+		{CEF6A453-1034-46B7-9617-C94E19891B46}.ExportRelease|Any CPU.ActiveCfg = ExportRelease|Any CPU
+		{CEF6A453-1034-46B7-9617-C94E19891B46}.ExportRelease|Any CPU.Build.0 = ExportRelease|Any CPU
 	EndGlobalSection
 EndGlobal

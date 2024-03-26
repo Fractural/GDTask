@@ -5,7 +5,6 @@
 
 [node name="Test" type="Node2D"]
 script = ExtResource("1")
-runTestOnReady = true
 spritePath = NodePath("Sprite2D")
 
 [node name="Sprite2D" type="Sprite2D" parent="."]
