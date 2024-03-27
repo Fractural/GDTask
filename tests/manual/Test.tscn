@@ -3,11 +3,32 @@
 [ext_resource type="Script" path="res://tests/manual/Test.cs" id="1"]
 [ext_resource type="Texture2D" uid="uid://cw01ge0bgos8m" path="res://icon.png" id="2"]
 
-[node name="Test" type="Node2D"]
+[node name="Test" type="Node" node_paths=PackedStringArray("pauseLabel")]
 script = ExtResource("1")
-spritePath = NodePath("Sprite2D")
+spritePath = NodePath("Node2D/Sprite2D")
+pauseLabel = NodePath("UI/Control/PauseLabel")
 
-[node name="Sprite2D" type="Sprite2D" parent="."]
+[node name="Node2D" type="Node2D" parent="."]
+
+[node name="Sprite2D" type="Sprite2D" parent="Node2D"]
 texture = ExtResource("2")
 
-[node name="Camera2D" type="Camera2D" parent="."]
+[node name="Camera2D" type="Camera2D" parent="Node2D"]
+
+[node name="UI" type="CanvasLayer" parent="."]
+
+[node name="Control" type="Control" parent="UI"]
+layout_mode = 3
+anchors_preset = 15
+anchor_right = 1.0
+anchor_bottom = 1.0
+grow_horizontal = 2
+grow_vertical = 2
+
+[node name="PauseLabel" type="Label" parent="UI/Control"]
+layout_mode = 0
+offset_left = 18.0
+offset_top = 18.0
+offset_right = 75.0
+offset_bottom = 41.0
+text = "Paused"

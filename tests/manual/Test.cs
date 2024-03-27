@@ -5,12 +5,14 @@ using System.Threading;
 
 namespace Tests.Manual
 {
-    public partial class Test : Node2D
+    public partial class Test : Node
     {
         [Export]
         private bool runTestOnReady;
         [Export]
         private NodePath spritePath;
+        [Export]
+        private Label pauseLabel;
         public Sprite2D sprite;
 
         public override void _Ready()
@@ -18,43 +20,54 @@ namespace Tests.Manual
             sprite = GetNode<Sprite2D>(spritePath);
             if (runTestOnReady)
                 Run().Forget();
+            ProcessMode = ProcessModeEnum.Always;
+            pauseLabel.Text = GetTree().Paused ? "Paused" : "Unpaused";
         }
 
         public override void _Input(InputEvent @event)
         {
-            if (@event.IsActionReleased("ui_select"))
+            if (@event.IsActionReleased("ui_left"))
             {
                 Run().Forget();
+            }
+            else if (@event.IsActionReleased("ui_right"))
+            {
+                RunPause().Forget();
+            }
+            else if (@event.IsActionReleased("ui_up"))
+            {
+                GetTree().Paused = !GetTree().Paused;
+                pauseLabel.Text = GetTree().Paused ? "Paused" : "Unpaused";
             }
         }
 
         private async GDTaskVoid Run()
         {
-            GD.Print("Pre delay");
+            GD.Print("Run: Pre delay");
             sprite.Visible = false;
             await GDTask.Delay(TimeSpan.FromSeconds(3));
             sprite.Visible = true;
-            GD.Print("Post delay after 3 seconds");
+            GD.Print("Run: Post delay after 3 seconds");
 
-            GD.Print("Pre RunWithResult");
+            GD.Print("Run: Pre RunWithResult");
             string result = await RunWithResult();
-            GD.Print($"Post got result: {result}");
+            GD.Print($"Run: Post got result: {result}");
 
-            GD.Print("LongTask started");
+            GD.Print("Run: LongTask started");
             var cts = new CancellationTokenSource();
 
             CancellableReallyLongTask(cts.Token).Forget();
 
             await GDTask.Delay(TimeSpan.FromSeconds(3));
             cts.Cancel();
-            GD.Print("LongTask cancelled");
+            GD.Print("Run: LongTask cancelled");
 
             await GDTask.WaitForEndOfFrame();
-            GD.Print("WaitForEndOfFrame");
+            GD.Print("Run: WaitForEndOfFrame");
             await GDTask.WaitForPhysicsProcess();
-            GD.Print("WaitForPhysicsProcess");
+            GD.Print("Run: WaitForPhysicsProcess");
             await GDTask.NextFrame();
-            GD.Print("NextFrame");
+            GD.Print("Run: NextFrame");
         }
 
         private async GDTask<string> RunWithResult()
@@ -66,13 +79,60 @@ namespace Tests.Manual
         private async GDTaskVoid CancellableReallyLongTask(CancellationToken cancellationToken)
         {
             int seconds = 10;
-            GD.Print($"Starting long task ({seconds} seconds long).");
+            GD.Print($"Run: Starting long task ({seconds} seconds long).");
             for (int i = 0; i < seconds; i++)
             {
-                GD.Print($"Working on long task for {i} seconds...");
+                GD.Print($"Run: Working on long task for {i} seconds...");
                 await GDTask.Delay(TimeSpan.FromSeconds(1), cancellationToken: cancellationToken);
             }
-            GD.Print("Finished long task.");
+            GD.Print("Run: Finished long task.");
+        }
+
+        private async GDTaskVoid RunPause()
+        {
+            GD.Print("RunPause: Pre delay");
+            sprite.Visible = false;
+            await GDTask.Delay(TimeSpan.FromSeconds(3), PlayerLoopTiming.PauseProcess);
+            sprite.Visible = true;
+            GD.Print("RunPause: Post delay after 3 seconds");
+
+            GD.Print("RunPause: Pre RunWithResult");
+            string result = await RunWithResultPause();
+            GD.Print($"RunPause: Post got result: {result}");
+
+            GD.Print("RunPause: LongTask started");
+            var cts = new CancellationTokenSource();
+
+            CancellableReallyLongTaskPause(cts.Token).Forget();
+
+            await GDTask.Delay(TimeSpan.FromSeconds(3), PlayerLoopTiming.PauseProcess);
+            cts.Cancel();
+            GD.Print("RunPause: LongTask cancelled");
+
+            await GDTask.Yield(PlayerLoopTiming.PauseProcess);
+            GD.Print("RunPause: Yield(PlayerLoopTiming.PauseProcess)");
+            await GDTask.Yield(PlayerLoopTiming.PausePhysicsProcess);
+            GD.Print("RunPause: Yield(PlayerLoopTiming.PausePhysicsProcess)");
+            await GDTask.NextFrame(PlayerLoopTiming.PauseProcess);
+            GD.Print("RunPause: NextFrame");
+        }
+
+        private async GDTask<string> RunWithResultPause()
+        {
+            await GDTask.Delay(TimeSpan.FromSeconds(2), PlayerLoopTiming.PauseProcess);
+            return "Hello";
+        }
+
+        private async GDTaskVoid CancellableReallyLongTaskPause(CancellationToken cancellationToken)
+        {
+            int seconds = 10;
+            GD.Print($"RunPause: Starting long task ({seconds} seconds long).");
+            for (int i = 0; i < seconds; i++)
+            {
+                GD.Print($"RunPause: Working on long task for {i} seconds...");
+                await GDTask.Delay(TimeSpan.FromSeconds(1), PlayerLoopTiming.PauseProcess, cancellationToken);
+            }
+            GD.Print("RunPause: Finished long task.");
         }
     }
 }

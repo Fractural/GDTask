@@ -1,9 +1,8 @@
 ﻿using Fractural.Tasks.Internal;
+using Godot;
 using System;
-using System.Collections;
 using System.Runtime.CompilerServices;
 using System.Threading;
-using Godot;
 
 namespace Fractural.Tasks
 {
@@ -82,7 +81,7 @@ namespace Fractural.Tasks
         }
 
         /// <summary>
-        /// Same as GDTask.Yield(PlayerLoopTiming.LastPhysicsProcess).
+        /// Same as GDTask.Yield(PlayerLoopTiming.PhysicsProcess).
         /// </summary>
         public static YieldAwaitable WaitForPhysicsProcess()
         {
@@ -90,7 +89,7 @@ namespace Fractural.Tasks
         }
 
         /// <summary>
-        /// Same as GDTask.Yield(PlayerLoopTiming.LastPhysicsProcess, cancellationToken).
+        /// Same as GDTask.Yield(PlayerLoopTiming.PhysicsProcess, cancellationToken).
         /// </summary>
         public static GDTask WaitForPhysicsProcess(CancellationToken cancellationToken)
         {
@@ -138,7 +137,6 @@ namespace Fractural.Tasks
                 delayType = DelayType.Realtime;
             }
 #endif
-
             switch (delayType)
             {
                 case DelayType.Realtime:
@@ -566,11 +564,11 @@ namespace Fractural.Tasks
                     }
                 }
 
-                if (timing == PlayerLoopTiming.Process)
+                if (timing == PlayerLoopTiming.Process || timing == PlayerLoopTiming.PauseProcess)
                     elapsed += GDTaskPlayerLoopAutoload.Global.DeltaTime;
                 else
                     elapsed += GDTaskPlayerLoopAutoload.Global.PhysicsDeltaTime;
-                
+
                 if (elapsed >= delayTimeSpan)
                 {
                     core.TrySetResult(null);
