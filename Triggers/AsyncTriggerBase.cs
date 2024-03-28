@@ -1,6 +1,6 @@
-﻿using System;
+﻿using Godot;
+using System;
 using System.Threading;
-using Godot;
 
 namespace Fractural.Tasks.Triggers
 {
@@ -32,48 +32,17 @@ namespace Fractural.Tasks.Triggers
 
         internal void AddHandler(ITriggerHandler<T> handler)
         {
-            if (!calledEnterTree)
-            {
-                GDTaskPlayerLoopAutoload.AddAction(PlayerLoopTiming.Process, new AwakeMonitor(this));
-            }
-
             triggerEvent.Add(handler);
         }
 
         internal void RemoveHandler(ITriggerHandler<T> handler)
         {
-            if (!calledEnterTree)
-            {
-                GDTaskPlayerLoopAutoload.AddAction(PlayerLoopTiming.Process, new AwakeMonitor(this));
-            }
-
             triggerEvent.Remove(handler);
         }
 
         protected void RaiseEvent(T value)
         {
             triggerEvent.SetResult(value);
-        }
-
-        class AwakeMonitor : IPlayerLoopItem
-        {
-            readonly AsyncTriggerBase<T> trigger;
-
-            public AwakeMonitor(AsyncTriggerBase<T> trigger)
-            {
-                this.trigger = trigger;
-            }
-
-            public bool MoveNext()
-            {
-                if (trigger.calledEnterTree) return false;
-                if (trigger == null)
-                {
-                    trigger.OnDestroy();
-                    return false;
-                }
-                return true;
-            }
         }
     }
 

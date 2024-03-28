@@ -1,11 +1,10 @@
-﻿using System.Threading;
-using Godot;
+﻿using Godot;
 
 namespace Fractural.Tasks.Triggers
 {
     public static partial class AsyncTriggerExtensions
     {
-        public static AsyncEnterTreeTrigger GetAsyncAwakeTrigger(this Node node)
+        public static AsyncEnterTreeTrigger GetAsyncEnterTreeTrigger(this Node node)
         {
             return node.GetOrAddImmediateChild<AsyncEnterTreeTrigger>();
         }
@@ -19,7 +18,7 @@ namespace Fractural.Tasks.Triggers
             RaiseEvent(AsyncUnit.Default);
         }
 
-        public GDTask AwakeAsync()
+        public GDTask EnterTreeAsync()
         {
             if (calledEnterTree) return GDTask.CompletedTask;
 

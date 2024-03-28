@@ -1,5 +1,5 @@
-﻿using System.Threading;
-using Godot;
+﻿using Godot;
+using System.Threading;
 
 namespace Fractural.Tasks.Triggers
 {
@@ -13,7 +13,7 @@ namespace Fractural.Tasks.Triggers
 
     public sealed partial class AsyncDestroyTrigger : Node
     {
-        bool awakeCalled = false;
+        bool enterTreeCalled = false;
         bool called = false;
         CancellationTokenSource cancellationTokenSource;
 
@@ -26,18 +26,13 @@ namespace Fractural.Tasks.Triggers
                     cancellationTokenSource = new CancellationTokenSource();
                 }
 
-                if (!awakeCalled)
-                {
-                    GDTaskPlayerLoopAutoload.AddAction(PlayerLoopTiming.Process, new AwakeMonitor(this));
-                }
-
                 return cancellationTokenSource.Token;
             }
         }
 
         public override void _EnterTree()
         {
-            awakeCalled = true;
+            enterTreeCalled = true;
         }
 
         public override void _Notification(int what)
@@ -68,27 +63,6 @@ namespace Fractural.Tasks.Triggers
             }, tcs);
 
             return tcs.Task;
-        }
-
-        class AwakeMonitor : IPlayerLoopItem
-        {
-            readonly AsyncDestroyTrigger trigger;
-
-            public AwakeMonitor(AsyncDestroyTrigger trigger)
-            {
-                this.trigger = trigger;
-            }
-
-            public bool MoveNext()
-            {
-                if (trigger.called) return false;
-                if (trigger == null)
-                {
-                    trigger.OnDestroy();
-                    return false;
-                }
-                return true;
-            }
         }
     }
 }

@@ -4,7 +4,7 @@ namespace Fractural.Tasks.Triggers
 {
     public static partial class AsyncTriggerExtensions
     {
-        public static AsyncReadyTrigger GetAsyncStartTrigger(this Node node)
+        public static AsyncReadyTrigger GetAsyncReadyTrigger(this Node node)
         {
             return node.GetOrAddImmediateChild<AsyncReadyTrigger>();
         }
@@ -21,7 +21,7 @@ namespace Fractural.Tasks.Triggers
             RaiseEvent(AsyncUnit.Default);
         }
 
-        public GDTask StartAsync()
+        public GDTask ReadyAsync()
         {
             if (called) return GDTask.CompletedTask;
 
