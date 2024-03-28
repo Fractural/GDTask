@@ -46,8 +46,14 @@ public Test : Node
 		var cts = new CancellationTokenSource();
 		WaitAndEmitMySignal(TimeSpan.FromSeconds(2)).Forget();
 		WaitAndCancelToken(TimeSpan.FromSeconds(1), cts).Forget();
-		var signalResults = await GDTask.ToSignal(this, nameof(MySignal), cts.Token);
-		// signalResults = null, since we cancelled awaiting the signal before the signal could fire.
+		try 
+		{
+			var signalResults = await GDTask.ToSignal(this, nameof(MySignal), cts.Token);
+		}
+		catch (OperationCanceledException _)
+		{
+			GD.Print("Awaiting MySignal cancelled!");
+		}
 
 		// Waiting a single frame
 		await GDTask.Yield();

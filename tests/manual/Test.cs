@@ -85,15 +85,29 @@ namespace Tests.Manual
             GD.Print("Run: Await Cancellable MyEmptySignal");
             WaitAndEmitMyEmptySignal(TimeSpan.FromSeconds(3)).Forget();
             WaitAndCancelToken(TimeSpan.FromSeconds(0.5), cts).Forget();
-            signalResult = await GDTask.ToSignal(this, nameof(MyEmptySignal), cts.Token);
-            GD.Print("Run: Await Cancellable MyEmptySignal Cancelled, result: ", signalResult);
+            try
+            {
+                signalResult = await GDTask.ToSignal(this, nameof(MyEmptySignal), cts.Token);
+                GD.Print("Run: Await Cancellable MyEmptySignal ran with result: ", signalResult);
+            }
+            catch (OperationCanceledException _)
+            {
+                GD.Print("Run: Await Cancellable MyEmptySignal Cancelled");
+            }
 
             cts = new CancellationTokenSource();
             GD.Print("Run: Await Cancellable MyArgSignal");
             WaitAndEmitMyArgSignal(TimeSpan.FromSeconds(3)).Forget();
             WaitAndCancelToken(TimeSpan.FromSeconds(0.5), cts).Forget();
-            signalResult = await GDTask.ToSignal(this, nameof(MyArgSignal), cts.Token);
-            GD.Print("Run: Await Cancellable MyArgSignal Cancelled, result: ", signalResult);
+            try
+            {
+                signalResult = await GDTask.ToSignal(this, nameof(MyArgSignal), cts.Token);
+                GD.Print("Run: Await Cancellable MyArgSignal ran with result: ", signalResult);
+            }
+            catch (OperationCanceledException _)
+            {
+                GD.Print("Run: Await Cancellable MyArgSignal Cancelled");
+            }
 
             GD.Print("Run: Pre RunWithResult");
             string runResult = await RunWithResult();
