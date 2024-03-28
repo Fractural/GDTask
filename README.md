@@ -3,7 +3,7 @@
 > **NOTE:** 
 > 
 > This branch is for the Godot 4.x version of the addon. 
-> You can download the Godot 3.x version from the main branch.
+> You can download the Godot 3.x version from the 3.x branch.
 
 Adds async/await features in Godot for easier async coding.
 Based on code from [Cysharp's UniTask library for Unity](https://github.com/Cysharp/UniTask).
