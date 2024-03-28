@@ -30,7 +30,7 @@ namespace Fractural.Tasks
         {
 #if DEBUG
             // force use Realtime.
-            if (GDTaskPlayerLoopAutoload.IsMainThread && Engine.EditorHint)
+            if (GDTaskPlayerLoopAutoload.IsMainThread && Engine.IsEditorHint())
             {
                 delayType = DelayType.Realtime;
             }
@@ -142,9 +142,10 @@ namespace Fractural.Tasks
 
     sealed class DeltaTimePlayerLoopTimer : PlayerLoopTimer
     {
-        int initialFrame;
-        float elapsed;
-        float interval;
+        bool isMainThread;
+        ulong initialFrame;
+        double elapsed;
+        double interval;
 
         public DeltaTimePlayerLoopTimer(TimeSpan interval, bool periodic, PlayerLoopTiming playerLoopTiming, CancellationToken cancellationToken, Action<object> timerCallback, object state)
             : base(periodic, playerLoopTiming, cancellationToken, timerCallback, state)
@@ -154,9 +155,9 @@ namespace Fractural.Tasks
 
         protected override bool MoveNextCore()
         {
-            if (elapsed == 0.0f)
+            if (elapsed == 0.0)
             {
-                if (initialFrame == Engine.GetFramesDrawn())
+                if (isMainThread && initialFrame == Engine.GetProcessFrames())
                 {
                     return true;
                 }
@@ -173,8 +174,10 @@ namespace Fractural.Tasks
 
         protected override void ResetCore(TimeSpan? interval)
         {
-            this.elapsed = 0.0f;
-            this.initialFrame = GDTaskPlayerLoopAutoload.IsMainThread ? Engine.GetFramesDrawn() : -1;
+            this.elapsed = 0.0;
+            this.isMainThread = GDTaskPlayerLoopAutoload.IsMainThread;
+            if (this.isMainThread)
+                this.initialFrame = Engine.GetProcessFrames();
             if (interval != null)
             {
                 this.interval = (float)interval.Value.TotalSeconds;

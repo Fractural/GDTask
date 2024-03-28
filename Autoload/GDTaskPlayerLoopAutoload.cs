@@ -1,8 +1,6 @@
-﻿using System;
-using System.Linq;
-using Fractural.Tasks.Internal;
-using System.Threading;
+﻿using Fractural.Tasks.Internal;
 using Godot;
+using System;
 
 namespace Fractural.Tasks
 {
@@ -16,31 +14,8 @@ namespace Fractural.Tasks
     {
         Process = 0,
         PhysicsProcess = 1,
-    }
-
-    [Flags]
-    public enum InjectPlayerLoopTimings
-    {
-        /// <summary>
-        /// Preset: All loops(default).
-        /// </summary>
-        All = Process | PhysicsProcess,
-
-        /// <summary>
-        /// Preset: All without last except LastPostLateUpdate.
-        /// </summary>
-        Standard = Process | PhysicsProcess,
-
-        /// <summary>
-        /// Preset: Minimum pattern, Update | PhysicsProcess | LastPostLateUpdate
-        /// </summary>
-        Minimum =
-            Process | PhysicsProcess,
-
-        // PlayerLoopTiming
-
-        PhysicsProcess = 1,
-        Process = 2,
+        PauseProcess = 2,
+        PausePhysicsProcess = 3,
     }
 
     public interface IPlayerLoopItem
@@ -51,7 +26,7 @@ namespace Fractural.Tasks
     /// <summary>
     /// Singleton that forwards Godot calls and values to GDTasks.
     /// </summary>
-    public class GDTaskPlayerLoopAutoload : Node
+    public partial class GDTaskPlayerLoopAutoload : Node
     {
         public static int MainThreadId => Global.mainThreadId;
         public static bool IsMainThread => System.Threading.Thread.CurrentThread.ManagedThreadId == Global.mainThreadId;
@@ -80,32 +55,64 @@ namespace Fractural.Tasks
             q.Enqueue(continuation);
         }
 
-        public static GDTaskPlayerLoopAutoload Global { get; private set; }
-        public float DeltaTime => GetProcessDeltaTime();
-        public float PhysicsDeltaTime => GetPhysicsProcessDeltaTime();
+        public static GDTaskPlayerLoopAutoload Global
+        {
+            get
+            {
+                if (s_Global != null) return s_Global;
 
+                var newInstance = new GDTaskPlayerLoopAutoload();
+                newInstance.Initialize();
+                var currentScene = ((SceneTree)Engine.GetMainLoop()).CurrentScene;
+                currentScene.AddChild(newInstance);
+                currentScene.MoveChild(newInstance, 0);
+                newInstance.Name = "GDTaskPlayerLoopAutoload";
+                s_Global = newInstance;
+
+                return s_Global;
+            }
+        }
+        public double DeltaTime => GetProcessDeltaTime();
+        public double PhysicsDeltaTime => GetPhysicsProcessDeltaTime();
+
+        private static GDTaskPlayerLoopAutoload s_Global;
         private int mainThreadId;
         private ContinuationQueue[] yielders;
         private PlayerLoopRunner[] runners;
+        private ProcessListener processListener;
 
         public override void _Ready()
         {
-            if (Global != null)
+            if (s_Global == null)
             {
-                QueueFree();
+                Initialize();
+                s_Global = this;
                 return;
             }
-            Global = this;
+            QueueFree();
+        }
 
+        private void Initialize()
+        {
+            ProcessMode = ProcessModeEnum.Pausable;
             mainThreadId = System.Threading.Thread.CurrentThread.ManagedThreadId;
             yielders = new[] {
                 new ContinuationQueue(PlayerLoopTiming.Process),
                 new ContinuationQueue(PlayerLoopTiming.PhysicsProcess),
+                new ContinuationQueue(PlayerLoopTiming.PauseProcess),
+                new ContinuationQueue(PlayerLoopTiming.PausePhysicsProcess),
             };
             runners = new[] {
                 new PlayerLoopRunner(PlayerLoopTiming.Process),
                 new PlayerLoopRunner(PlayerLoopTiming.PhysicsProcess),
+                new PlayerLoopRunner(PlayerLoopTiming.PauseProcess),
+                new PlayerLoopRunner(PlayerLoopTiming.PausePhysicsProcess),
             };
+            processListener = new ProcessListener();
+            AddChild(processListener);
+            processListener.ProcessMode = ProcessModeEnum.Always;
+            processListener.OnProcess += PauseProcess;
+            processListener.OnPhysicsProcess += PausePhysicsProcess;
         }
 
         public override void _Notification(int what)
@@ -113,7 +120,7 @@ namespace Fractural.Tasks
             if (what == NotificationPredelete)
             {
                 if (Global == this)
-                    Global = null;
+                    s_Global = null;
                 if (yielders != null)
                 {
                     foreach (var yielder in yielders)
@@ -124,16 +131,28 @@ namespace Fractural.Tasks
             }
         }
 
-        public override void _Process(float delta)
+        public override void _Process(double delta)
         {
-            yielders[(int) PlayerLoopTiming.Process].Run();
-            runners[(int) PlayerLoopTiming.Process].Run();
+            yielders[(int)PlayerLoopTiming.Process].Run();
+            runners[(int)PlayerLoopTiming.Process].Run();
         }
 
-        public override void _PhysicsProcess(float delta)
+        public override void _PhysicsProcess(double delta)
         {
-            yielders[(int) PlayerLoopTiming.PhysicsProcess].Run();
-            runners[(int) PlayerLoopTiming.PhysicsProcess].Run();
+            yielders[(int)PlayerLoopTiming.PhysicsProcess].Run();
+            runners[(int)PlayerLoopTiming.PhysicsProcess].Run();
+        }
+
+        private void PauseProcess(double delta)
+        {
+            yielders[(int)PlayerLoopTiming.PauseProcess].Run();
+            runners[(int)PlayerLoopTiming.PauseProcess].Run();
+        }
+
+        private void PausePhysicsProcess(double delta)
+        {
+            yielders[(int)PlayerLoopTiming.PausePhysicsProcess].Run();
+            runners[(int)PlayerLoopTiming.PausePhysicsProcess].Run();
         }
     }
 }

@@ -1,8 +1,8 @@
 ﻿#pragma warning disable CS1591
 
 using System;
-using System.Linq;
 using System.Diagnostics;
+using System.Linq;
 using System.Runtime.CompilerServices;
 
 namespace Fractural.Tasks.CompilerServices
@@ -56,9 +56,6 @@ namespace Fractural.Tasks.CompilerServices
         public AsyncGDTaskVoid()
         {
             MoveNext = Run;
-#if ENABLE_IL2CPP
-            ReturnAction = Return;
-#endif
         }
 
         public static void SetStateMachine(ref TStateMachine stateMachine, ref IStateMachineRunner runnerFieldRef)
@@ -120,10 +117,6 @@ namespace Fractural.Tasks.CompilerServices
         where TStateMachine : IAsyncStateMachine
     {
         static TaskPool<AsyncGDTask<TStateMachine>> pool;
-
-#if ENABLE_IL2CPP
-        readonly Action returnDelegate;  
-#endif
         public Action MoveNext { get; }
 
         TStateMachine stateMachine;
@@ -132,9 +125,6 @@ namespace Fractural.Tasks.CompilerServices
         AsyncGDTask()
         {
             MoveNext = Run;
-#if ENABLE_IL2CPP
-            returnDelegate = Return;
-#endif
         }
 
         public static void SetStateMachine(ref TStateMachine stateMachine, ref IStateMachineRunnerPromise runnerPromiseFieldRef)
@@ -210,12 +200,7 @@ namespace Fractural.Tasks.CompilerServices
             }
             finally
             {
-#if ENABLE_IL2CPP
-                // workaround for IL2CPP bug.
-                PlayerLoopHelper.AddContinuation(PlayerLoopTiming.LastPostLateUpdate, returnDelegate);
-#else
                 TryReturn();
-#endif
             }
         }
 
@@ -243,10 +228,6 @@ namespace Fractural.Tasks.CompilerServices
     {
         static TaskPool<AsyncGDTask<TStateMachine, T>> pool;
 
-#if ENABLE_IL2CPP
-        readonly Action returnDelegate;  
-#endif
-
         public Action MoveNext { get; }
 
         TStateMachine stateMachine;
@@ -255,9 +236,6 @@ namespace Fractural.Tasks.CompilerServices
         AsyncGDTask()
         {
             MoveNext = Run;
-#if ENABLE_IL2CPP
-            returnDelegate = Return;
-#endif
         }
 
         public static void SetStateMachine(ref TStateMachine stateMachine, ref IStateMachineRunnerPromise<T> runnerPromiseFieldRef)
@@ -333,12 +311,7 @@ namespace Fractural.Tasks.CompilerServices
             }
             finally
             {
-#if ENABLE_IL2CPP
-                // workaround for IL2CPP bug.
-                PlayerLoopHelper.AddContinuation(PlayerLoopTiming.LastPostLateUpdate, returnDelegate);
-#else
                 TryReturn();
-#endif
             }
         }
 

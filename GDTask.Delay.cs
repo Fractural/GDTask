@@ -1,9 +1,8 @@
 ﻿using Fractural.Tasks.Internal;
+using Godot;
 using System;
-using System.Collections;
 using System.Runtime.CompilerServices;
 using System.Threading;
-using Godot;
 
 namespace Fractural.Tasks
 {
@@ -82,7 +81,7 @@ namespace Fractural.Tasks
         }
 
         /// <summary>
-        /// Same as GDTask.Yield(PlayerLoopTiming.LastPhysicsProcess).
+        /// Same as GDTask.Yield(PlayerLoopTiming.PhysicsProcess).
         /// </summary>
         public static YieldAwaitable WaitForPhysicsProcess()
         {
@@ -90,7 +89,7 @@ namespace Fractural.Tasks
         }
 
         /// <summary>
-        /// Same as GDTask.Yield(PlayerLoopTiming.LastPhysicsProcess, cancellationToken).
+        /// Same as GDTask.Yield(PlayerLoopTiming.PhysicsProcess, cancellationToken).
         /// </summary>
         public static GDTask WaitForPhysicsProcess(CancellationToken cancellationToken)
         {
@@ -133,12 +132,11 @@ namespace Fractural.Tasks
 
 #if DEBUG
             // force use Realtime.
-            if (GDTaskPlayerLoopAutoload.IsMainThread && Engine.EditorHint)
+            if (GDTaskPlayerLoopAutoload.IsMainThread && Engine.IsEditorHint())
             {
                 delayType = DelayType.Realtime;
             }
 #endif
-
             switch (delayType)
             {
                 case DelayType.Realtime:
@@ -253,7 +251,8 @@ namespace Fractural.Tasks
                 TaskPool.RegisterSizeGetter(typeof(NextFramePromise), () => pool.Size);
             }
 
-            int frameCount;
+            bool isMainThread;
+            ulong frameCount;
             CancellationToken cancellationToken;
             GDTaskCompletionSourceCore<AsyncUnit> core;
 
@@ -273,7 +272,9 @@ namespace Fractural.Tasks
                     result = new NextFramePromise();
                 }
 
-                result.frameCount = GDTaskPlayerLoopAutoload.IsMainThread ? Engine.GetFramesDrawn() : -1;
+                result.isMainThread = GDTaskPlayerLoopAutoload.IsMainThread;
+                if (result.isMainThread)
+                    result.frameCount = Engine.GetProcessFrames();
                 result.cancellationToken = cancellationToken;
 
                 TaskTracker.TrackActiveTask(result, 3);
@@ -319,7 +320,7 @@ namespace Fractural.Tasks
                     return false;
                 }
 
-                if (frameCount == Engine.GetFramesDrawn())
+                if (isMainThread && frameCount == Engine.GetProcessFrames())
                 {
                     return true;
                 }
@@ -348,7 +349,8 @@ namespace Fractural.Tasks
                 TaskPool.RegisterSizeGetter(typeof(DelayFramePromise), () => pool.Size);
             }
 
-            int initialFrame;
+            bool isMainThread;
+            ulong initialFrame;
             int delayFrameCount;
             CancellationToken cancellationToken;
 
@@ -373,7 +375,9 @@ namespace Fractural.Tasks
 
                 result.delayFrameCount = delayFrameCount;
                 result.cancellationToken = cancellationToken;
-                result.initialFrame = GDTaskPlayerLoopAutoload.IsMainThread ? Engine.GetFramesDrawn() : -1;
+                result.isMainThread = GDTaskPlayerLoopAutoload.IsMainThread;
+                if (result.isMainThread)
+                    result.initialFrame = Engine.GetProcessFrames();
 
                 TaskTracker.TrackActiveTask(result, 3);
 
@@ -427,11 +431,11 @@ namespace Fractural.Tasks
                     }
 
                     // skip in initial frame.
-                    if (initialFrame == Engine.GetFramesDrawn())
+                    if (isMainThread && initialFrame == Engine.GetProcessFrames())
                     {
 #if DEBUG
                         // force use Realtime.
-                        if (GDTaskPlayerLoopAutoload.IsMainThread && Engine.EditorHint)
+                        if (GDTaskPlayerLoopAutoload.IsMainThread && Engine.IsEditorHint())
                         {
                             //goto ++currentFrameCount
                         }
@@ -476,9 +480,11 @@ namespace Fractural.Tasks
                 TaskPool.RegisterSizeGetter(typeof(DelayPromise), () => pool.Size);
             }
 
-            int initialFrame;
-            float delayTimeSpan;
-            float elapsed;
+            bool isMainThread;
+            ulong initialFrame;
+            double delayTimeSpan;
+            double elapsed;
+            PlayerLoopTiming timing;
             CancellationToken cancellationToken;
 
             GDTaskCompletionSourceCore<object> core;
@@ -502,7 +508,10 @@ namespace Fractural.Tasks
                 result.elapsed = 0.0f;
                 result.delayTimeSpan = (float)delayTimeSpan.TotalSeconds;
                 result.cancellationToken = cancellationToken;
-                result.initialFrame = GDTaskPlayerLoopAutoload.IsMainThread ? Engine.GetFramesDrawn() : -1;
+                result.isMainThread = GDTaskPlayerLoopAutoload.IsMainThread;
+                result.timing = timing;
+                if (result.isMainThread)
+                    result.initialFrame = Engine.GetProcessFrames();
 
                 TaskTracker.TrackActiveTask(result, 3);
 
@@ -549,13 +558,17 @@ namespace Fractural.Tasks
 
                 if (elapsed == 0.0f)
                 {
-                    if (initialFrame == Engine.GetFramesDrawn())
+                    if (isMainThread && initialFrame == Engine.GetProcessFrames())
                     {
                         return true;
                     }
                 }
 
-                elapsed += GDTaskPlayerLoopAutoload.Global.DeltaTime;
+                if (timing == PlayerLoopTiming.Process || timing == PlayerLoopTiming.PauseProcess)
+                    elapsed += GDTaskPlayerLoopAutoload.Global.DeltaTime;
+                else
+                    elapsed += GDTaskPlayerLoopAutoload.Global.PhysicsDeltaTime;
+
                 if (elapsed >= delayTimeSpan)
                 {
                     core.TrySetResult(null);

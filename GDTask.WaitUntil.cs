@@ -25,7 +25,7 @@ namespace Fractural.Tasks
         public static GDTask<U> WaitUntilValueChanged<T, U>(T target, Func<T, U> monitorFunction, PlayerLoopTiming monitorTiming = PlayerLoopTiming.Process, IEqualityComparer<U> equalityComparer = null, CancellationToken cancellationToken = default(CancellationToken))
           where T : class
         {
-            var isGodotObject = target is Godot.Object; // don't use (unityObject == null)
+            var isGodotObject = target is Godot.GodotObject; // don't use (unityObject == null)
 
             return new GDTask<U>(isGodotObject
                 ? WaitUntilValueChangedGodotObjectPromise<T, U>.Create(target, monitorFunction, equalityComparer, monitorTiming, cancellationToken, out var token)
@@ -343,7 +343,7 @@ namespace Fractural.Tasks
             }
 
             T target;
-            Godot.Object targetAsGodotObject;
+            Godot.GodotObject targetAsGodotObject;
             U currentValue;
             Func<T, U> monitorFunction;
             IEqualityComparer<U> equalityComparer;
@@ -368,7 +368,7 @@ namespace Fractural.Tasks
                 }
 
                 result.target = target;
-                result.targetAsGodotObject = target as Godot.Object;
+                result.targetAsGodotObject = target as Godot.GodotObject;
                 result.monitorFunction = monitorFunction;
                 result.currentValue = monitorFunction(target);
                 result.equalityComparer = equalityComparer ?? GodotEqualityComparer.GetDefault<U>();

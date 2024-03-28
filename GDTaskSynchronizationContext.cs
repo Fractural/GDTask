@@ -1,11 +1,11 @@
-﻿using Godot;
+using Godot;
 using System;
 using System.Runtime.InteropServices;
 using System.Threading;
 
 namespace Fractural.Tasks
 {
-    public class GDTaskSynchronizationContext : SynchronizationContext
+    public partial class GDTaskSynchronizationContext : SynchronizationContext
     {
         const int MaxArrayLength = 0X7FEFFFFF;
         const int InitialSize = 16;

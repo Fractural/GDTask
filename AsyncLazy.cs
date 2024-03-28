@@ -3,7 +3,7 @@ using System.Threading;
 
 namespace Fractural.Tasks
 {
-    public class AsyncLazy
+    public partial class AsyncLazy
     {
         static Action<object> continuation = SetCompletionSource;
 
@@ -122,7 +122,7 @@ namespace Fractural.Tasks
         }
     }
 
-    public class AsyncLazy<T>
+    public partial class AsyncLazy<T>
     {
         static Action<object> continuation = SetCompletionSource;
 
