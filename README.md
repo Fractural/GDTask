@@ -1,6 +1,8 @@
 # GDTask ✅
 
-![Deploy](https://github.com/Fractural/GDTask/actions/workflows/deploy.yml/badge.svg) ![Unit Tests](https://github.com/Fractural/GDTask/actions/workflows/tests.yml/badge.svg)
+> NOTE:
+> 
+> This branch is for the Godot 3.x version of the addon. You can download the Godot 4.x version from the main branch.
 
 Adds async/await features in Godot for easier async coding.
 Based on code from [Cysharp's UniTask library for Unity](https://github.com/Cysharp/UniTask).
