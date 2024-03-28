@@ -85,14 +85,14 @@ namespace Tests.Manual
             GD.Print("Run: Await Cancellable MyEmptySignal");
             WaitAndEmitMyEmptySignal(TimeSpan.FromSeconds(3)).Forget();
             WaitAndCancelToken(TimeSpan.FromSeconds(0.5), cts).Forget();
-            signalResult = await this.ToGDTaskSignal(nameof(MyEmptySignal), cts.Token);
+            signalResult = await GDTask.ToSignal(this, nameof(MyEmptySignal), cts.Token);
             GD.Print("Run: Await Cancellable MyEmptySignal Cancelled, result: ", signalResult);
 
             cts = new CancellationTokenSource();
             GD.Print("Run: Await Cancellable MyArgSignal");
             WaitAndEmitMyArgSignal(TimeSpan.FromSeconds(3)).Forget();
             WaitAndCancelToken(TimeSpan.FromSeconds(0.5), cts).Forget();
-            signalResult = await this.ToGDTaskSignal(nameof(MyArgSignal), cts.Token);
+            signalResult = await GDTask.ToSignal(this, nameof(MyArgSignal), cts.Token);
             GD.Print("Run: Await Cancellable MyArgSignal Cancelled, result: ", signalResult);
 
             GD.Print("Run: Pre RunWithResult");

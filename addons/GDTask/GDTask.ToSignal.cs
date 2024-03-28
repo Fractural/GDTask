@@ -86,16 +86,4 @@ namespace Fractural.Tasks
             return await cancellableSignalAwaiter;
         }
     }
-
-    public static partial class GDTaskExtensions
-    {
-        public static GDTask<Variant[]> ToGDTaskSignal(this GodotObject self, string signal)
-        {
-            return GDTask.ToSignal(self, signal);
-        }
-        public static GDTask<Variant[]> ToGDTaskSignal(this GodotObject self, string signal, CancellationToken ct)
-        {
-            return GDTask.ToSignal(self, signal, ct);
-        }
-    }
 }
