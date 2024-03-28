@@ -7,6 +7,11 @@ namespace Tests.Manual
 {
     public partial class Test : Node
     {
+        [Signal]
+        public delegate void MyEmptySignalEventHandler();
+        [Signal]
+        public delegate void MyArgSignalEventHandler(int number, bool boolean);
+
         [Export]
         private bool runTestOnReady;
         [Export]
@@ -41,6 +46,23 @@ namespace Tests.Manual
             }
         }
 
+        private async GDTaskVoid WaitAndEmitMyEmptySignal(TimeSpan delay)
+        {
+            await GDTask.Delay(delay);
+            EmitSignal(nameof(MyEmptySignal));
+        }
+
+        private async GDTaskVoid WaitAndEmitMyArgSignal(TimeSpan delay)
+        {
+            await GDTask.Delay(delay);
+            EmitSignal(nameof(MyArgSignal), 10, true);
+        }
+        private async GDTaskVoid WaitAndCancelToken(TimeSpan delay, CancellationTokenSource cts)
+        {
+            await GDTask.Delay(delay);
+            cts.Cancel();
+        }
+
         private async GDTaskVoid Run()
         {
             GD.Print("Run: Pre delay");
@@ -49,12 +71,36 @@ namespace Tests.Manual
             sprite.Visible = true;
             GD.Print("Run: Post delay after 3 seconds");
 
+            GD.Print("Run: Await MyEmptySignal");
+            WaitAndEmitMyEmptySignal(TimeSpan.FromSeconds(1)).Forget();
+            var signalResult = await GDTask.ToSignal(this, nameof(MyEmptySignal));
+            GD.Print("Run: Await MyEmptySignal Complete, result: ", Json.Stringify(new Godot.Collections.Array(signalResult)));
+
+            GD.Print("Run: Await MyArgSignal");
+            WaitAndEmitMyArgSignal(TimeSpan.FromSeconds(1)).Forget();
+            signalResult = await GDTask.ToSignal(this, nameof(MyArgSignal));
+            GD.Print("Run: Await MyArgSignal Complete, result: ", Json.Stringify(new Godot.Collections.Array(signalResult)));
+
+            var cts = new CancellationTokenSource();
+            GD.Print("Run: Await Cancellable MyEmptySignal");
+            WaitAndEmitMyEmptySignal(TimeSpan.FromSeconds(3)).Forget();
+            WaitAndCancelToken(TimeSpan.FromSeconds(0.5), cts).Forget();
+            signalResult = await this.ToGDTaskSignal(nameof(MyEmptySignal), cts.Token);
+            GD.Print("Run: Await Cancellable MyEmptySignal Cancelled, result: ", signalResult);
+
+            cts = new CancellationTokenSource();
+            GD.Print("Run: Await Cancellable MyArgSignal");
+            WaitAndEmitMyArgSignal(TimeSpan.FromSeconds(3)).Forget();
+            WaitAndCancelToken(TimeSpan.FromSeconds(0.5), cts).Forget();
+            signalResult = await this.ToGDTaskSignal(nameof(MyArgSignal), cts.Token);
+            GD.Print("Run: Await Cancellable MyArgSignal Cancelled, result: ", signalResult);
+
             GD.Print("Run: Pre RunWithResult");
-            string result = await RunWithResult();
-            GD.Print($"Run: Post got result: {result}");
+            string runResult = await RunWithResult();
+            GD.Print($"Run: Post got result: {runResult}");
 
             GD.Print("Run: LongTask started");
-            var cts = new CancellationTokenSource();
+            cts = new CancellationTokenSource();
 
             CancellableReallyLongTask(cts.Token).Forget();
 
