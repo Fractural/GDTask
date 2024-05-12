@@ -2,6 +2,7 @@
 using System;
 using System.Collections.Generic;
 using System.Diagnostics;
+using System.Diagnostics.CodeAnalysis;
 using System.Globalization;
 using System.IO;
 using System.Linq;
@@ -43,7 +44,8 @@ namespace Fractural.Tasks.Internal
             { typeof(GDTaskVoid), "GDTaskVoid" }
         };
 
-        public static string CleanupAsyncStackTrace(this StackTrace stackTrace)
+		[RequiresUnreferencedCode("Calls System.Diagnostics.StackFrame.GetMethod()")]
+		public static string CleanupAsyncStackTrace(this StackTrace stackTrace)
         {
             if (stackTrace == null) return "";
 
@@ -120,15 +122,15 @@ namespace Fractural.Tasks.Internal
             return sb.ToString();
         }
 
-
         static bool IsAsync(MethodBase methodInfo)
         {
             var declareType = methodInfo.DeclaringType;
             return typeof(IAsyncStateMachine).IsAssignableFrom(declareType);
         }
 
-        // code from Ben.Demystifier/EnhancedStackTrace.Frame.cs
-        static bool TryResolveStateMachineMethod(ref MethodBase method, out Type declaringType)
+		// code from Ben.Demystifier/EnhancedStackTrace.Frame.cs
+		[RequiresUnreferencedCode("Calls System.Type.GetMethods()")]
+		static bool TryResolveStateMachineMethod(ref MethodBase method, out Type declaringType)
         {
             declaringType = method.DeclaringType;
 
