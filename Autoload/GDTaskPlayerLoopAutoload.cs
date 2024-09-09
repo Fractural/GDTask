@@ -81,7 +81,7 @@ namespace Fractural.Tasks
         private PlayerLoopRunner[] runners;
         private ProcessListener processListener;
 
-        public override void _Ready()
+        public override void _EnterTree()
         {
             if (s_Global == null)
             {
