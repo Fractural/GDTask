@@ -1,6 +1,6 @@
 # GDTask ✅
 
-> NOTE:
+> [!Note]
 > 
 > This branch is for the Godot 3.x version of the addon. You can download the Godot 4.x version from the main branch.
 
