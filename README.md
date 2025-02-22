@@ -2,7 +2,7 @@
 
 ![Deploy](https://github.com/Fractural/GDTask/actions/workflows/deploy.yml/badge.svg)
 
-> **NOTE:** 
+> [!Note] 
 > 
 > This branch is for the Godot 4.x version of the addon. 
 > You can download the Godot 3.x version from the 3.x branch.
