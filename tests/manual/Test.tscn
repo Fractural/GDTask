@@ -1,6 +1,6 @@
 [gd_scene load_steps=3 format=3 uid="uid://cfm0u7eao06ff"]
 
-[ext_resource type="Script" path="res://tests/manual/Test.cs" id="1"]
+[ext_resource type="Script" uid="uid://p7nspvioq02b" path="res://tests/manual/Test.cs" id="1"]
 [ext_resource type="Texture2D" uid="uid://cw01ge0bgos8m" path="res://icon.png" id="2"]
 
 [node name="Test" type="Node" node_paths=PackedStringArray("pauseLabel")]
