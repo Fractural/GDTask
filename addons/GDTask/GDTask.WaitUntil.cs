@@ -32,6 +32,11 @@ namespace Fractural.Tasks
                 : WaitUntilValueChangedStandardObjectPromise<T, U>.Create(target, monitorFunction, equalityComparer, monitorTiming, cancellationToken, out token), token);
         }
 
+        public static GDTask<U> WaitUntilValueChanged<U>(Func<U> monitorFunction, PlayerLoopTiming monitorTiming = PlayerLoopTiming.Process, IEqualityComparer<U> equalityComparer = null, CancellationToken cancellationToken = default(CancellationToken))
+        {
+            return WaitUntilValueChanged(monitorFunction, static (Func<U> monitorFunction) => monitorFunction(), monitorTiming, equalityComparer, cancellationToken);
+        }
+
         sealed class WaitUntilPromise : IGDTaskSource, IPlayerLoopItem, ITaskPoolNode<WaitUntilPromise>
         {
             static TaskPool<WaitUntilPromise> pool;
