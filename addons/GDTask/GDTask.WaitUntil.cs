@@ -2,6 +2,7 @@
 using System.Collections.Generic;
 using System.Threading;
 using Fractural.Tasks.Internal;
+using Godot;
 
 namespace Fractural.Tasks
 {
@@ -416,7 +417,7 @@ namespace Fractural.Tasks
 
             public bool MoveNext()
             {
-                if (cancellationToken.IsCancellationRequested || targetAsGodotObject == null) // destroyed = cancel.
+                if (cancellationToken.IsCancellationRequested || !GodotObject.IsInstanceValid(targetAsGodotObject)) // destroyed = cancel.
                 {
                     core.TrySetCanceled(cancellationToken);
                     return false;
