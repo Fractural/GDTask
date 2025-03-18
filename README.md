@@ -4,7 +4,7 @@
 
 > [!Note] 
 > 
-> This branch is for the Godot 4.x version of the addon. 
+> This branch is for the Godot 4.4 version of the addon. 
 > You can download the Godot 3.x version from the 3.x branch.
 
 Adds async/await features in Godot for easier async coding.
