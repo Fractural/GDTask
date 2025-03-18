@@ -41,23 +41,7 @@ namespace Fractural.Tasks
         /// <summary>
         /// Similar as GDTask.Yield but guaranteed run on next frame.
         /// </summary>
-        public static GDTask NextFrame()
-        {
-            return new GDTask(NextFramePromise.Create(PlayerLoopTiming.Process, CancellationToken.None, out var token), token);
-        }
-
-        /// <summary>
-        /// Similar as GDTask.Yield but guaranteed run on next frame.
-        /// </summary>
-        public static GDTask NextFrame(PlayerLoopTiming timing)
-        {
-            return new GDTask(NextFramePromise.Create(timing, CancellationToken.None, out var token), token);
-        }
-
-        /// <summary>
-        /// Similar as GDTask.Yield but guaranteed run on next frame.
-        /// </summary>
-        public static GDTask NextFrame(CancellationToken cancellationToken)
+        public static GDTask NextFrame(CancellationToken cancellationToken = default)
         {
             return new GDTask(NextFramePromise.Create(PlayerLoopTiming.Process, cancellationToken, out var token), token);
         }
@@ -65,7 +49,7 @@ namespace Fractural.Tasks
         /// <summary>
         /// Similar as GDTask.Yield but guaranteed run on next frame.
         /// </summary>
-        public static GDTask NextFrame(PlayerLoopTiming timing, CancellationToken cancellationToken)
+        public static GDTask NextFrame(PlayerLoopTiming timing, CancellationToken cancellationToken = default)
         {
             return new GDTask(NextFramePromise.Create(timing, cancellationToken, out var token), token);
         }
