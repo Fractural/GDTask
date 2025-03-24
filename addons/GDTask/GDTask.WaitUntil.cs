@@ -8,27 +8,37 @@ namespace Fractural.Tasks
 {
     public partial struct GDTask
     {
-        public static GDTask WaitUntil(Func<bool> predicate, PlayerLoopTiming timing = PlayerLoopTiming.Process, CancellationToken cancellationToken = default(CancellationToken))
+        public static GDTask WaitUntil(GodotObject target, Func<bool> predicate, PlayerLoopTiming timing = PlayerLoopTiming.Process, CancellationToken cancellationToken = default)
         {
-            return new GDTask(WaitUntilPromise.Create(predicate, timing, cancellationToken, out var token), token);
+            return new GDTask(WaitUntilPromise.Create(target, predicate, timing, cancellationToken, out var token), token);
+        }
+        public static GDTask WaitUntil(Func<bool> predicate, PlayerLoopTiming timing = PlayerLoopTiming.Process, CancellationToken cancellationToken = default)
+        {
+            return WaitUntil(null, predicate, timing, cancellationToken);
         }
 
-        public static GDTask WaitWhile(Func<bool> predicate, PlayerLoopTiming timing = PlayerLoopTiming.Process, CancellationToken cancellationToken = default(CancellationToken))
+        public static GDTask WaitWhile(GodotObject target, Func<bool> predicate, PlayerLoopTiming timing = PlayerLoopTiming.Process, CancellationToken cancellationToken = default)
         {
-            return new GDTask(WaitWhilePromise.Create(predicate, timing, cancellationToken, out var token), token);
+            return new GDTask(WaitWhilePromise.Create(target, predicate, timing, cancellationToken, out var token), token);
+        }
+        public static GDTask WaitWhile(Func<bool> predicate, PlayerLoopTiming timing = PlayerLoopTiming.Process, CancellationToken cancellationToken = default)
+        {
+            return WaitWhile(null, predicate, timing, cancellationToken);
         }
 
+        public static GDTask WaitUntilCanceled(GodotObject target, CancellationToken cancellationToken, PlayerLoopTiming timing = PlayerLoopTiming.Process)
+        {
+            return new GDTask(WaitUntilCanceledPromise.Create(target, cancellationToken, timing, out var token), token);
+        }
         public static GDTask WaitUntilCanceled(CancellationToken cancellationToken, PlayerLoopTiming timing = PlayerLoopTiming.Process)
         {
-            return new GDTask(WaitUntilCanceledPromise.Create(cancellationToken, timing, out var token), token);
+            return WaitUntilCanceled(null, cancellationToken, timing);
         }
 
-        public static GDTask<U> WaitUntilValueChanged<T, U>(T target, Func<T, U> monitorFunction, PlayerLoopTiming monitorTiming = PlayerLoopTiming.Process, IEqualityComparer<U> equalityComparer = null, CancellationToken cancellationToken = default(CancellationToken))
+        public static GDTask<U> WaitUntilValueChanged<T, U>(T target, Func<T, U> monitorFunction, PlayerLoopTiming monitorTiming = PlayerLoopTiming.Process, IEqualityComparer<U> equalityComparer = null, CancellationToken cancellationToken = default)
           where T : class
         {
-            var isGodotObject = target is Godot.GodotObject; // don't use (unityObject == null)
-
-            return new GDTask<U>(isGodotObject
+            return new GDTask<U>(target is GodotObject
                 ? WaitUntilValueChangedGodotObjectPromise<T, U>.Create(target, monitorFunction, equalityComparer, monitorTiming, cancellationToken, out var token)
                 : WaitUntilValueChangedStandardObjectPromise<T, U>.Create(target, monitorFunction, equalityComparer, monitorTiming, cancellationToken, out token), token);
         }
@@ -44,6 +54,7 @@ namespace Fractural.Tasks
                 TaskPool.RegisterSizeGetter(typeof(WaitUntilPromise), () => pool.Size);
             }
 
+            GodotObject target;
             Func<bool> predicate;
             CancellationToken cancellationToken;
 
@@ -53,7 +64,7 @@ namespace Fractural.Tasks
             {
             }
 
-            public static IGDTaskSource Create(Func<bool> predicate, PlayerLoopTiming timing, CancellationToken cancellationToken, out short token)
+            public static IGDTaskSource Create(GodotObject target, Func<bool> predicate, PlayerLoopTiming timing, CancellationToken cancellationToken, out short token)
             {
                 if (cancellationToken.IsCancellationRequested)
                 {
@@ -65,6 +76,7 @@ namespace Fractural.Tasks
                     result = new WaitUntilPromise();
                 }
 
+                result.target = target;
                 result.predicate = predicate;
                 result.cancellationToken = cancellationToken;
 
@@ -105,7 +117,7 @@ namespace Fractural.Tasks
 
             public bool MoveNext()
             {
-                if (cancellationToken.IsCancellationRequested)
+                if (cancellationToken.IsCancellationRequested || (target is not null && !GodotObject.IsInstanceValid(target))) // Cancel when destroyed
                 {
                     core.TrySetCanceled(cancellationToken);
                     return false;
@@ -149,6 +161,7 @@ namespace Fractural.Tasks
                 TaskPool.RegisterSizeGetter(typeof(WaitWhilePromise), () => pool.Size);
             }
 
+            GodotObject target;
             Func<bool> predicate;
             CancellationToken cancellationToken;
 
@@ -158,7 +171,7 @@ namespace Fractural.Tasks
             {
             }
 
-            public static IGDTaskSource Create(Func<bool> predicate, PlayerLoopTiming timing, CancellationToken cancellationToken, out short token)
+            public static IGDTaskSource Create(GodotObject target, Func<bool> predicate, PlayerLoopTiming timing, CancellationToken cancellationToken, out short token)
             {
                 if (cancellationToken.IsCancellationRequested)
                 {
@@ -170,6 +183,7 @@ namespace Fractural.Tasks
                     result = new WaitWhilePromise();
                 }
 
+                result.target = target;
                 result.predicate = predicate;
                 result.cancellationToken = cancellationToken;
 
@@ -210,7 +224,7 @@ namespace Fractural.Tasks
 
             public bool MoveNext()
             {
-                if (cancellationToken.IsCancellationRequested)
+                if (cancellationToken.IsCancellationRequested || (target is not null && !GodotObject.IsInstanceValid(target))) // Cancel when destroyed
                 {
                     core.TrySetCanceled(cancellationToken);
                     return false;
@@ -254,6 +268,7 @@ namespace Fractural.Tasks
                 TaskPool.RegisterSizeGetter(typeof(WaitUntilCanceledPromise), () => pool.Size);
             }
 
+            GodotObject target;
             CancellationToken cancellationToken;
 
             GDTaskCompletionSourceCore<object> core;
@@ -262,7 +277,7 @@ namespace Fractural.Tasks
             {
             }
 
-            public static IGDTaskSource Create(CancellationToken cancellationToken, PlayerLoopTiming timing, out short token)
+            public static IGDTaskSource Create(GodotObject target, CancellationToken cancellationToken, PlayerLoopTiming timing, out short token)
             {
                 if (cancellationToken.IsCancellationRequested)
                 {
@@ -274,6 +289,7 @@ namespace Fractural.Tasks
                     result = new WaitUntilCanceledPromise();
                 }
 
+                result.target = target;
                 result.cancellationToken = cancellationToken;
 
                 TaskTracker.TrackActiveTask(result, 3);
@@ -313,7 +329,7 @@ namespace Fractural.Tasks
 
             public bool MoveNext()
             {
-                if (cancellationToken.IsCancellationRequested)
+                if (cancellationToken.IsCancellationRequested || (target is not null && !GodotObject.IsInstanceValid(target))) // Cancel when destroyed
                 {
                     core.TrySetResult(null);
                     return false;
@@ -331,7 +347,7 @@ namespace Fractural.Tasks
             }
         }
 
-        // where T : UnityEngine.Object, can not add constraint
+        // Cannot add `where T : GodotObject` because `WaitUntilValueChanged` doesn't have the constraint.
         sealed class WaitUntilValueChangedGodotObjectPromise<T, U> : IGDTaskSource<U>, IPlayerLoopItem, ITaskPoolNode<WaitUntilValueChangedGodotObjectPromise<T, U>>
         {
             static TaskPool<WaitUntilValueChangedGodotObjectPromise<T, U>> pool;
@@ -344,7 +360,7 @@ namespace Fractural.Tasks
             }
 
             T target;
-            Godot.GodotObject targetAsGodotObject;
+            GodotObject targetGodotObject;
             U currentValue;
             Func<T, U> monitorFunction;
             IEqualityComparer<U> equalityComparer;
@@ -369,7 +385,7 @@ namespace Fractural.Tasks
                 }
 
                 result.target = target;
-                result.targetAsGodotObject = target as Godot.GodotObject;
+                result.targetGodotObject = target as GodotObject;
                 result.monitorFunction = monitorFunction;
                 result.currentValue = monitorFunction(target);
                 result.equalityComparer = equalityComparer ?? GodotEqualityComparer.GetDefault<U>();
@@ -417,13 +433,13 @@ namespace Fractural.Tasks
 
             public bool MoveNext()
             {
-                if (cancellationToken.IsCancellationRequested || !GodotObject.IsInstanceValid(targetAsGodotObject)) // destroyed = cancel.
+                if (cancellationToken.IsCancellationRequested || (target is not null && !GodotObject.IsInstanceValid(targetGodotObject))) // Cancel when destroyed
                 {
                     core.TrySetCanceled(cancellationToken);
                     return false;
                 }
 
-                U nextValue = default(U);
+                U nextValue = default;
                 try
                 {
                     nextValue = monitorFunction(target);
@@ -545,7 +561,7 @@ namespace Fractural.Tasks
                     return false;
                 }
 
-                U nextValue = default(U);
+                U nextValue = default;
                 try
                 {
                     nextValue = monitorFunction(t);
