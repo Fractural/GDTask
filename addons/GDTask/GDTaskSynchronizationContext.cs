@@ -1,158 +1,163 @@
-using Godot;
 using System;
 using System.Runtime.InteropServices;
 using System.Threading;
+using Godot;
 
-namespace Fractural.Tasks
+namespace Fractural.Tasks;
+
+public partial class GDTaskSynchronizationContext : SynchronizationContext
 {
-    public partial class GDTaskSynchronizationContext : SynchronizationContext
+    private const int MaxArrayLength = 0X7FEFFFFF;
+    private const int InitialSize = 16;
+
+    private static SpinLock _gate = new(false);
+    private static bool _dequing = false;
+
+    private static int _actionListCount = 0;
+    private static Callback[] _actionList = new Callback[InitialSize];
+
+    private static int _waitingListCount = 0;
+    private static Callback[] _waitingList = new Callback[InitialSize];
+
+    private static int _opCount;
+
+    public override void Send(SendOrPostCallback d, object state)
     {
-        const int MaxArrayLength = 0X7FEFFFFF;
-        const int InitialSize = 16;
+        d(state);
+    }
 
-        static SpinLock gate = new SpinLock(false);
-        static bool dequing = false;
-
-        static int actionListCount = 0;
-        static Callback[] actionList = new Callback[InitialSize];
-
-        static int waitingListCount = 0;
-        static Callback[] waitingList = new Callback[InitialSize];
-
-        static int opCount;
-
-        public override void Send(SendOrPostCallback d, object state)
+    public override void Post(SendOrPostCallback d, object state)
+    {
+        bool lockTaken = false;
+        try
         {
-            d(state);
-        }
+            _gate.Enter(ref lockTaken);
 
-        public override void Post(SendOrPostCallback d, object state)
+            if (_dequing)
+            {
+                // Ensure Capacity
+                if (_waitingList.Length == _waitingListCount)
+                {
+                    var newLength = _waitingListCount * 2;
+                    if ((uint)newLength > MaxArrayLength)
+                        newLength = MaxArrayLength;
+
+                    var newArray = new Callback[newLength];
+                    Array.Copy(_waitingList, newArray, _waitingListCount);
+                    _waitingList = newArray;
+                }
+                _waitingList[_waitingListCount] = new Callback(d, state);
+                _waitingListCount++;
+            }
+            else
+            {
+                // Ensure Capacity
+                if (_actionList.Length == _actionListCount)
+                {
+                    var newLength = _actionListCount * 2;
+                    if ((uint)newLength > MaxArrayLength)
+                        newLength = MaxArrayLength;
+
+                    var newArray = new Callback[newLength];
+                    Array.Copy(_actionList, newArray, _actionListCount);
+                    _actionList = newArray;
+                }
+                _actionList[_actionListCount] = new Callback(d, state);
+                _actionListCount++;
+            }
+        }
+        finally
+        {
+            if (lockTaken)
+                _gate.Exit(false);
+        }
+    }
+
+    public override void OperationStarted()
+    {
+        Interlocked.Increment(ref _opCount);
+    }
+
+    public override void OperationCompleted()
+    {
+        Interlocked.Decrement(ref _opCount);
+    }
+
+    public override SynchronizationContext CreateCopy()
+    {
+        return this;
+    }
+
+    // delegate entrypoint.
+    internal static void Run()
+    {
         {
             bool lockTaken = false;
             try
             {
-                gate.Enter(ref lockTaken);
-
-                if (dequing)
-                {
-                    // Ensure Capacity
-                    if (waitingList.Length == waitingListCount)
-                    {
-                        var newLength = waitingListCount * 2;
-                        if ((uint)newLength > MaxArrayLength) newLength = MaxArrayLength;
-
-                        var newArray = new Callback[newLength];
-                        Array.Copy(waitingList, newArray, waitingListCount);
-                        waitingList = newArray;
-                    }
-                    waitingList[waitingListCount] = new Callback(d, state);
-                    waitingListCount++;
-                }
-                else
-                {
-                    // Ensure Capacity
-                    if (actionList.Length == actionListCount)
-                    {
-                        var newLength = actionListCount * 2;
-                        if ((uint)newLength > MaxArrayLength) newLength = MaxArrayLength;
-
-                        var newArray = new Callback[newLength];
-                        Array.Copy(actionList, newArray, actionListCount);
-                        actionList = newArray;
-                    }
-                    actionList[actionListCount] = new Callback(d, state);
-                    actionListCount++;
-                }
+                _gate.Enter(ref lockTaken);
+                if (_actionListCount == 0)
+                    return;
+                _dequing = true;
             }
             finally
             {
-                if (lockTaken) gate.Exit(false);
+                if (lockTaken)
+                    _gate.Exit(false);
             }
         }
 
-        public override void OperationStarted()
+        for (int i = 0; i < _actionListCount; i++)
         {
-            Interlocked.Increment(ref opCount);
+            var action = _actionList[i];
+            _actionList[i] = default;
+            action.Invoke();
         }
 
-        public override void OperationCompleted()
         {
-            Interlocked.Decrement(ref opCount);
-        }
-
-        public override SynchronizationContext CreateCopy()
-        {
-            return this;
-        }
-
-        // delegate entrypoint.
-        internal static void Run()
-        {
+            bool lockTaken = false;
+            try
             {
-                bool lockTaken = false;
-                try
-                {
-                    gate.Enter(ref lockTaken);
-                    if (actionListCount == 0) return;
-                    dequing = true;
-                }
-                finally
-                {
-                    if (lockTaken) gate.Exit(false);
-                }
+                _gate.Enter(ref lockTaken);
+                _dequing = false;
+
+                var swapTempActionList = _actionList;
+
+                _actionListCount = _waitingListCount;
+                _actionList = _waitingList;
+
+                _waitingListCount = 0;
+                _waitingList = swapTempActionList;
             }
-
-            for (int i = 0; i < actionListCount; i++)
+            finally
             {
-                var action = actionList[i];
-                actionList[i] = default;
-                action.Invoke();
-            }
-
-            {
-                bool lockTaken = false;
-                try
-                {
-                    gate.Enter(ref lockTaken);
-                    dequing = false;
-
-                    var swapTempActionList = actionList;
-
-                    actionListCount = waitingListCount;
-                    actionList = waitingList;
-
-                    waitingListCount = 0;
-                    waitingList = swapTempActionList;
-                }
-                finally
-                {
-                    if (lockTaken) gate.Exit(false);
-                }
+                if (lockTaken)
+                    _gate.Exit(false);
             }
         }
+    }
 
-        [StructLayout(LayoutKind.Auto)]
-        readonly struct Callback
+    [StructLayout(LayoutKind.Auto)]
+    private readonly struct Callback
+    {
+        private readonly SendOrPostCallback callback;
+        private readonly object state;
+
+        public Callback(SendOrPostCallback callback, object state)
         {
-            readonly SendOrPostCallback callback;
-            readonly object state;
+            this.callback = callback;
+            this.state = state;
+        }
 
-            public Callback(SendOrPostCallback callback, object state)
+        public void Invoke()
+        {
+            try
             {
-                this.callback = callback;
-                this.state = state;
+                callback(state);
             }
-
-            public void Invoke()
+            catch (Exception ex)
             {
-                try
-                {
-                    callback(state);
-                }
-                catch (Exception ex)
-                {
-                    GD.PrintErr(ex);
-                }
+                GD.PrintErr(ex);
             }
         }
     }

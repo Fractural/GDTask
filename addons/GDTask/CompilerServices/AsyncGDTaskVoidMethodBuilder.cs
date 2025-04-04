@@ -1,125 +1,119 @@
-﻿
-using System;
+﻿using System;
 using System.Diagnostics;
 using System.Runtime.CompilerServices;
 using System.Runtime.InteropServices;
 using System.Security;
 
-namespace Fractural.Tasks.CompilerServices
+namespace Fractural.Tasks.CompilerServices;
+
+[StructLayout(LayoutKind.Auto)]
+public struct AsyncGDTaskVoidMethodBuilder
 {
-    [StructLayout(LayoutKind.Auto)]
-    public struct AsyncGDTaskVoidMethodBuilder
+    IStateMachineRunner runner;
+
+    // 1. Static Create method.
+    [DebuggerHidden]
+    [MethodImpl(MethodImplOptions.AggressiveInlining)]
+    public static AsyncGDTaskVoidMethodBuilder Create()
     {
-        IStateMachineRunner runner;
+        return default;
+    }
 
-        // 1. Static Create method.
+    // 2. TaskLike Task property(void)
+    public GDTaskVoid Task
+    {
         [DebuggerHidden]
         [MethodImpl(MethodImplOptions.AggressiveInlining)]
-        public static AsyncGDTaskVoidMethodBuilder Create()
+        get { return default; }
+    }
+
+    // 3. SetException
+    [DebuggerHidden]
+    [MethodImpl(MethodImplOptions.AggressiveInlining)]
+    public void SetException(Exception exception)
+    {
+        // runner is finished, return first.
+        if (runner != null)
         {
-            return default;
+            runner.Return();
+            runner = null;
         }
 
-        // 2. TaskLike Task property(void)
-        public GDTaskVoid Task
+        GDTaskScheduler.PublishUnobservedTaskException(exception);
+    }
+
+    // 4. SetResult
+    [DebuggerHidden]
+    [MethodImpl(MethodImplOptions.AggressiveInlining)]
+    public void SetResult()
+    {
+        // runner is finished, return.
+        if (runner != null)
         {
-            [DebuggerHidden]
-            [MethodImpl(MethodImplOptions.AggressiveInlining)]
-            get
-            {
-                return default;
-            }
+            runner.Return();
+            runner = null;
+        }
+    }
+
+    // 5. AwaitOnCompleted
+    [DebuggerHidden]
+    [MethodImpl(MethodImplOptions.AggressiveInlining)]
+    public void AwaitOnCompleted<TAwaiter, TStateMachine>(ref TAwaiter awaiter, ref TStateMachine stateMachine)
+        where TAwaiter : INotifyCompletion
+        where TStateMachine : IAsyncStateMachine
+    {
+        if (runner == null)
+        {
+            AsyncGDTaskVoid<TStateMachine>.SetStateMachine(ref stateMachine, ref runner);
         }
 
-        // 3. SetException
-        [DebuggerHidden]
-        [MethodImpl(MethodImplOptions.AggressiveInlining)]
-        public void SetException(Exception exception)
-        {
-            // runner is finished, return first.
-            if (runner != null)
-            {
-                runner.Return();
-                runner = null;
-            }
+        awaiter.OnCompleted(runner.MoveNext);
+    }
 
-            GDTaskScheduler.PublishUnobservedTaskException(exception);
+    // 6. AwaitUnsafeOnCompleted
+    [DebuggerHidden]
+    [SecuritySafeCritical]
+    [MethodImpl(MethodImplOptions.AggressiveInlining)]
+    public void AwaitUnsafeOnCompleted<TAwaiter, TStateMachine>(ref TAwaiter awaiter, ref TStateMachine stateMachine)
+        where TAwaiter : ICriticalNotifyCompletion
+        where TStateMachine : IAsyncStateMachine
+    {
+        if (runner == null)
+        {
+            AsyncGDTaskVoid<TStateMachine>.SetStateMachine(ref stateMachine, ref runner);
         }
 
-        // 4. SetResult
-        [DebuggerHidden]
-        [MethodImpl(MethodImplOptions.AggressiveInlining)]
-        public void SetResult()
-        {
-            // runner is finished, return.
-            if (runner != null)
-            {
-                runner.Return();
-                runner = null;
-            }
-        }
+        awaiter.UnsafeOnCompleted(runner.MoveNext);
+    }
 
-        // 5. AwaitOnCompleted
-        [DebuggerHidden]
-        [MethodImpl(MethodImplOptions.AggressiveInlining)]
-        public void AwaitOnCompleted<TAwaiter, TStateMachine>(ref TAwaiter awaiter, ref TStateMachine stateMachine)
-            where TAwaiter : INotifyCompletion
-            where TStateMachine : IAsyncStateMachine
-        {
-            if (runner == null)
-            {
-                AsyncGDTaskVoid<TStateMachine>.SetStateMachine(ref stateMachine, ref runner);
-            }
+    // 7. Start
+    [DebuggerHidden]
+    public void Start<TStateMachine>(ref TStateMachine stateMachine)
+        where TStateMachine : IAsyncStateMachine
+    {
+        stateMachine.MoveNext();
+    }
 
-            awaiter.OnCompleted(runner.MoveNext);
-        }
-
-        // 6. AwaitUnsafeOnCompleted
-        [DebuggerHidden]
-        [SecuritySafeCritical]
-        [MethodImpl(MethodImplOptions.AggressiveInlining)]
-        public void AwaitUnsafeOnCompleted<TAwaiter, TStateMachine>(ref TAwaiter awaiter, ref TStateMachine stateMachine)
-            where TAwaiter : ICriticalNotifyCompletion
-            where TStateMachine : IAsyncStateMachine
-        {
-            if (runner == null)
-            {
-                AsyncGDTaskVoid<TStateMachine>.SetStateMachine(ref stateMachine, ref runner);
-            }
-
-            awaiter.UnsafeOnCompleted(runner.MoveNext);
-        }
-
-        // 7. Start
-        [DebuggerHidden]
-        public void Start<TStateMachine>(ref TStateMachine stateMachine)
-            where TStateMachine : IAsyncStateMachine
-        {
-            stateMachine.MoveNext();
-        }
-
-        // 8. SetStateMachine
-        [DebuggerHidden]
-        public void SetStateMachine(IAsyncStateMachine stateMachine)
-        {
-            // don't use boxed stateMachine.
-        }
+    // 8. SetStateMachine
+    [DebuggerHidden]
+    public void SetStateMachine(IAsyncStateMachine stateMachine)
+    {
+        // don't use boxed stateMachine.
+    }
 
 #if DEBUG
-        // Important for IDE debugger.
-        object debuggingId;
-        private object ObjectIdForDebugger
+    // Important for IDE debugger.
+    object debuggingId;
+    private object ObjectIdForDebugger
+    {
+        get
         {
-            get
+            if (debuggingId == null)
             {
-                if (debuggingId == null)
-                {
-                    debuggingId = new object();
-                }
-                return debuggingId;
+                debuggingId = new object();
             }
+            return debuggingId;
         }
-#endif
     }
+#endif
 }
-

@@ -1,26 +1,25 @@
-﻿#pragma warning disable CS1591 // Missing XML comment for publicly visible type or 
+﻿#pragma warning disable CS1591 // Missing XML comment for publicly visible type or
 
 using System;
 
-namespace Fractural.Tasks
+namespace Fractural.Tasks;
+
+public readonly struct AsyncUnit : IEquatable<AsyncUnit>
 {
-    public readonly struct AsyncUnit : IEquatable<AsyncUnit>
+    public static readonly AsyncUnit Default = new AsyncUnit();
+
+    public override int GetHashCode()
     {
-        public static readonly AsyncUnit Default = new AsyncUnit();
+        return 0;
+    }
 
-        public override int GetHashCode()
-        {
-            return 0;
-        }
+    public bool Equals(AsyncUnit other)
+    {
+        return true;
+    }
 
-        public bool Equals(AsyncUnit other)
-        {
-            return true;
-        }
-
-        public override string ToString()
-        {
-            return "()";
-        }
+    public override string ToString()
+    {
+        return "()";
     }
 }
