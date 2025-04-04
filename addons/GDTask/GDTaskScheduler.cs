@@ -1,40 +1,38 @@
 ﻿using System;
-using System.Threading;
 using Godot;
 
-namespace Fractural.Tasks
+namespace Fractural.Tasks;
+
+// GDTask has no scheduler like TaskScheduler.
+// Only handle unobserved exception.
+
+public static class GDTaskScheduler
 {
-    // GDTask has no scheduler like TaskScheduler.
-    // Only handle unobserved exception.
+    public static event Action<Exception> UnobservedTaskException;
 
-    public static class GDTaskScheduler
+    /// <summary>
+    /// Propagate OperationCanceledException to UnobservedTaskException when true. Default is false.
+    /// </summary>
+    public static bool PropagateOperationCanceledException { get; set; } = false;
+
+    internal static void PublishUnobservedTaskException(Exception ex)
     {
-        public static event Action<Exception> UnobservedTaskException;
-
-        /// <summary>
-        /// Propagate OperationCanceledException to UnobservedTaskException when true. Default is false.
-        /// </summary>
-        public static bool PropagateOperationCanceledException = false;
-
-        internal static void PublishUnobservedTaskException(Exception ex)
+        if (ex is null)
         {
-            if (ex != null)
-            {
-                if (!PropagateOperationCanceledException && ex is OperationCanceledException)
-                {
-                    return;
-                }
-
-                if (UnobservedTaskException != null)
-                {
-                    UnobservedTaskException.Invoke(ex);
-                }
-                else
-                {
-                    GD.PrintErr("UnobservedTaskException: " + ex.ToString());
-                }
-            }
+            return;
         }
+
+        if (!PropagateOperationCanceledException && ex is OperationCanceledException)
+        {
+            return;
+        }
+
+        if (UnobservedTaskException is null)
+        {
+            GD.PrintErr($"UnobservedTaskException: {ex}");
+            return;
+        }
+
+        UnobservedTaskException.Invoke(ex);
     }
 }
-

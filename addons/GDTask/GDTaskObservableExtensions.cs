@@ -1,748 +1,286 @@
 ﻿using System;
-using System.Runtime.ExceptionServices;
 using System.Threading;
 using Fractural.Tasks.Internal;
 
-namespace Fractural.Tasks
+namespace Fractural.Tasks;
+
+public static class GDTaskObservableExtensions
 {
-    public static class GDTaskObservableExtensions
+    public static GDTask<T> ToGDTask<T>(this IObservable<T> source, bool useFirstValue = false, CancellationToken cancellationToken = default)
     {
-        public static GDTask<T> ToGDTask<T>(this IObservable<T> source, bool useFirstValue = false, CancellationToken cancellationToken = default)
+        var promise = new GDTaskCompletionSource<T>();
+        var disposable = new SingleAssignmentDisposable();
+
+        IObserver<T> observer = useFirstValue
+            ? new FirstValueToGDTaskObserver<T>(promise, disposable, cancellationToken)
+            : new ToGDTaskObserver<T>(promise, disposable, cancellationToken);
+
+        try
         {
-            var promise = new GDTaskCompletionSource<T>();
-            var disposable = new SingleAssignmentDisposable();
-
-            var observer = useFirstValue
-                ? (IObserver<T>)new FirstValueToGDTaskObserver<T>(promise, disposable, cancellationToken)
-                : (IObserver<T>)new ToGDTaskObserver<T>(promise, disposable, cancellationToken);
-
-            try
-            {
-                disposable.Disposable = source.Subscribe(observer);
-            }
-            catch (Exception ex)
-            {
-                promise.TrySetException(ex);
-            }
-
-            return promise.Task;
+            disposable.Disposable = source.Subscribe(observer);
+        }
+        catch (Exception ex)
+        {
+            promise.TrySetException(ex);
         }
 
-        public static IObservable<T> ToObservable<T>(this GDTask<T> task)
-        {
-            if (task.Status.IsCompleted())
-            {
-                try
-                {
-                    return new ReturnObservable<T>(task.GetAwaiter().GetResult());
-                }
-                catch (Exception ex)
-                {
-                    return new ThrowObservable<T>(ex);
-                }
-            }
+        return promise.Task;
+    }
 
-            var subject = new AsyncSubject<T>();
-            Fire(subject, task).Forget();
-            return subject;
-        }
-
-        /// <summary>
-        /// Ideally returns IObservabl[Unit] is best but GDTask does not have Unit so return AsyncUnit instead.
-        /// </summary>
-        public static IObservable<AsyncUnit> ToObservable(this GDTask task)
-        {
-            if (task.Status.IsCompleted())
-            {
-                try
-                {
-                    task.GetAwaiter().GetResult();
-                    return new ReturnObservable<AsyncUnit>(AsyncUnit.Default);
-                }
-                catch (Exception ex)
-                {
-                    return new ThrowObservable<AsyncUnit>(ex);
-                }
-            }
-
-            var subject = new AsyncSubject<AsyncUnit>();
-            Fire(subject, task).Forget();
-            return subject;
-        }
-
-        static async GDTaskVoid Fire<T>(AsyncSubject<T> subject, GDTask<T> task)
-        {
-            T value;
-            try
-            {
-                value = await task;
-            }
-            catch (Exception ex)
-            {
-                subject.OnError(ex);
-                return;
-            }
-
-            subject.OnNext(value);
-            subject.OnCompleted();
-        }
-
-        static async GDTaskVoid Fire(AsyncSubject<AsyncUnit> subject, GDTask task)
+    public static IObservable<T> ToObservable<T>(this GDTask<T> task)
+    {
+        if (task.Status.IsCompleted())
         {
             try
             {
-                await task;
+                return new ReturnObservable<T>(task.GetAwaiter().GetResult());
             }
             catch (Exception ex)
             {
-                subject.OnError(ex);
-                return;
-            }
-
-            subject.OnNext(AsyncUnit.Default);
-            subject.OnCompleted();
-        }
-
-        class ToGDTaskObserver<T> : IObserver<T>
-        {
-            static readonly Action<object> callback = OnCanceled;
-
-            readonly GDTaskCompletionSource<T> promise;
-            readonly SingleAssignmentDisposable disposable;
-            readonly CancellationToken cancellationToken;
-            readonly CancellationTokenRegistration registration;
-
-            bool hasValue;
-            T latestValue;
-
-            public ToGDTaskObserver(GDTaskCompletionSource<T> promise, SingleAssignmentDisposable disposable, CancellationToken cancellationToken)
-            {
-                this.promise = promise;
-                this.disposable = disposable;
-                this.cancellationToken = cancellationToken;
-
-                if (this.cancellationToken.CanBeCanceled)
-                {
-                    this.registration = this.cancellationToken.RegisterWithoutCaptureExecutionContext(callback, this);
-                }
-            }
-
-            static void OnCanceled(object state)
-            {
-                var self = (ToGDTaskObserver<T>)state;
-                self.disposable.Dispose();
-                self.promise.TrySetCanceled(self.cancellationToken);
-            }
-
-            public void OnNext(T value)
-            {
-                hasValue = true;
-                latestValue = value;
-            }
-
-            public void OnError(Exception error)
-            {
-                try
-                {
-                    promise.TrySetException(error);
-                }
-                finally
-                {
-                    registration.Dispose();
-                    disposable.Dispose();
-                }
-            }
-
-            public void OnCompleted()
-            {
-                try
-                {
-                    if (hasValue)
-                    {
-                        promise.TrySetResult(latestValue);
-                    }
-                    else
-                    {
-                        promise.TrySetException(new InvalidOperationException("Sequence has no elements"));
-                    }
-                }
-                finally
-                {
-                    registration.Dispose();
-                    disposable.Dispose();
-                }
+                return new ThrowObservable<T>(ex);
             }
         }
 
-        class FirstValueToGDTaskObserver<T> : IObserver<T>
-        {
-            static readonly Action<object> callback = OnCanceled;
-
-            readonly GDTaskCompletionSource<T> promise;
-            readonly SingleAssignmentDisposable disposable;
-            readonly CancellationToken cancellationToken;
-            readonly CancellationTokenRegistration registration;
-
-            bool hasValue;
-
-            public FirstValueToGDTaskObserver(GDTaskCompletionSource<T> promise, SingleAssignmentDisposable disposable, CancellationToken cancellationToken)
-            {
-                this.promise = promise;
-                this.disposable = disposable;
-                this.cancellationToken = cancellationToken;
-
-                if (this.cancellationToken.CanBeCanceled)
-                {
-                    this.registration = this.cancellationToken.RegisterWithoutCaptureExecutionContext(callback, this);
-                }
-            }
-
-            static void OnCanceled(object state)
-            {
-                var self = (FirstValueToGDTaskObserver<T>)state;
-                self.disposable.Dispose();
-                self.promise.TrySetCanceled(self.cancellationToken);
-            }
-
-            public void OnNext(T value)
-            {
-                hasValue = true;
-                try
-                {
-                    promise.TrySetResult(value);
-                }
-                finally
-                {
-                    registration.Dispose();
-                    disposable.Dispose();
-                }
-            }
-
-            public void OnError(Exception error)
-            {
-                try
-                {
-                    promise.TrySetException(error);
-                }
-                finally
-                {
-                    registration.Dispose();
-                    disposable.Dispose();
-                }
-            }
-
-            public void OnCompleted()
-            {
-                try
-                {
-                    if (!hasValue)
-                    {
-                        promise.TrySetException(new InvalidOperationException("Sequence has no elements"));
-                    }
-                }
-                finally
-                {
-                    registration.Dispose();
-                    disposable.Dispose();
-                }
-            }
-        }
-
-        class ReturnObservable<T> : IObservable<T>
-        {
-            readonly T value;
-
-            public ReturnObservable(T value)
-            {
-                this.value = value;
-            }
-
-            public IDisposable Subscribe(IObserver<T> observer)
-            {
-                observer.OnNext(value);
-                observer.OnCompleted();
-                return EmptyDisposable.Instance;
-            }
-        }
-
-        class ThrowObservable<T> : IObservable<T>
-        {
-            readonly Exception value;
-
-            public ThrowObservable(Exception value)
-            {
-                this.value = value;
-            }
-
-            public IDisposable Subscribe(IObserver<T> observer)
-            {
-                observer.OnError(value);
-                return EmptyDisposable.Instance;
-            }
-        }
-    }
-}
-
-namespace Fractural.Tasks.Internal
-{
-    // Bridges for Rx.
-
-    internal class EmptyDisposable : IDisposable
-    {
-        public static EmptyDisposable Instance = new EmptyDisposable();
-
-        EmptyDisposable()
-        {
-
-        }
-
-        public void Dispose()
-        {
-        }
+        var subject = new AsyncSubject<T>();
+        Fire(subject, task).Forget();
+        return subject;
     }
 
-    internal sealed class SingleAssignmentDisposable : IDisposable
+    /// <summary>
+    /// Ideally returns IObservabl[Unit] is best but GDTask does not have Unit so return AsyncUnit instead.
+    /// </summary>
+    public static IObservable<AsyncUnit> ToObservable(this GDTask task)
     {
-        readonly object gate = new object();
-        IDisposable current;
-        bool disposed;
-
-        public bool IsDisposed { get { lock (gate) { return disposed; } } }
-
-        public IDisposable Disposable
+        if (task.Status.IsCompleted())
         {
-            get
+            try
             {
-                return current;
+                task.GetAwaiter().GetResult();
+                return new ReturnObservable<AsyncUnit>(AsyncUnit.Default);
             }
-            set
+            catch (Exception ex)
             {
-                var old = default(IDisposable);
-                bool alreadyDisposed;
-                lock (gate)
-                {
-                    alreadyDisposed = disposed;
-                    old = current;
-                    if (!alreadyDisposed)
-                    {
-                        if (value == null) return;
-                        current = value;
-                    }
-                }
-
-                if (alreadyDisposed && value != null)
-                {
-                    value.Dispose();
-                    return;
-                }
-
-                if (old != null) throw new InvalidOperationException("Disposable is already set");
+                return new ThrowObservable<AsyncUnit>(ex);
             }
         }
 
-
-        public void Dispose()
-        {
-            IDisposable old = null;
-
-            lock (gate)
-            {
-                if (!disposed)
-                {
-                    disposed = true;
-                    old = current;
-                    current = null;
-                }
-            }
-
-            if (old != null) old.Dispose();
-        }
+        var subject = new AsyncSubject<AsyncUnit>();
+        Fire(subject, task).Forget();
+        return subject;
     }
 
-    internal sealed class AsyncSubject<T> : IObservable<T>, IObserver<T>
+    private static async GDTaskVoid Fire<T>(AsyncSubject<T> subject, GDTask<T> task)
     {
-        object observerLock = new object();
-
-        T lastValue;
-        bool hasValue;
-        bool isStopped;
-        bool isDisposed;
-        Exception lastError;
-        IObserver<T> outObserver = EmptyObserver<T>.Instance;
-
-        public T Value
+        T value;
+        try
         {
-            get
+            value = await task;
+        }
+        catch (Exception ex)
+        {
+            subject.OnError(ex);
+            return;
+        }
+
+        subject.OnNext(value);
+        subject.OnCompleted();
+    }
+
+    private static async GDTaskVoid Fire(AsyncSubject<AsyncUnit> subject, GDTask task)
+    {
+        try
+        {
+            await task;
+        }
+        catch (Exception ex)
+        {
+            subject.OnError(ex);
+            return;
+        }
+
+        subject.OnNext(AsyncUnit.Default);
+        subject.OnCompleted();
+    }
+
+    private class ToGDTaskObserver<T> : IObserver<T>
+    {
+        private static readonly Action<object> callback = OnCanceled;
+
+        private readonly GDTaskCompletionSource<T> _promise;
+        private readonly SingleAssignmentDisposable _disposable;
+        private readonly CancellationToken _cancellationToken;
+        private readonly CancellationTokenRegistration _registration;
+
+        private bool _hasValue;
+        private T _latestValue;
+
+        public ToGDTaskObserver(GDTaskCompletionSource<T> promise, SingleAssignmentDisposable disposable, CancellationToken cancellationToken)
+        {
+            _promise = promise;
+            _disposable = disposable;
+            _cancellationToken = cancellationToken;
+
+            if (_cancellationToken.CanBeCanceled)
             {
-                ThrowIfDisposed();
-                if (!isStopped) throw new InvalidOperationException("AsyncSubject is not completed yet");
-                if (lastError != null) ExceptionDispatchInfo.Capture(lastError).Throw();
-                return lastValue;
+                _registration = _cancellationToken.RegisterWithoutCaptureExecutionContext(callback, this);
             }
         }
 
-        public bool HasObservers
+        private static void OnCanceled(object state)
         {
-            get
-            {
-                return !(outObserver is EmptyObserver<T>) && !isStopped && !isDisposed;
-            }
+            var self = (ToGDTaskObserver<T>)state;
+            self._disposable.Dispose();
+            self._promise.TrySetCanceled(self._cancellationToken);
         }
 
-        public bool IsCompleted { get { return isStopped; } }
+        public void OnNext(T value)
+        {
+            _hasValue = true;
+            _latestValue = value;
+        }
+
+        public void OnError(Exception error)
+        {
+            try
+            {
+                _promise.TrySetException(error);
+            }
+            finally
+            {
+                _registration.Dispose();
+                _disposable.Dispose();
+            }
+        }
 
         public void OnCompleted()
         {
-            IObserver<T> old;
-            T v;
-            bool hv;
-            lock (observerLock)
+            try
             {
-                ThrowIfDisposed();
-                if (isStopped) return;
-
-                old = outObserver;
-                outObserver = EmptyObserver<T>.Instance;
-                isStopped = true;
-                v = lastValue;
-                hv = hasValue;
+                if (_hasValue)
+                {
+                    _promise.TrySetResult(_latestValue);
+                }
+                else
+                {
+                    _promise.TrySetException(new InvalidOperationException("Sequence has no elements"));
+                }
             }
-
-            if (hv)
+            finally
             {
-                old.OnNext(v);
-                old.OnCompleted();
+                _registration.Dispose();
+                _disposable.Dispose();
             }
-            else
+        }
+    }
+
+    private class FirstValueToGDTaskObserver<T> : IObserver<T>
+    {
+        private static readonly Action<object> _callback = OnCanceled;
+
+        private readonly GDTaskCompletionSource<T> _promise;
+        private readonly SingleAssignmentDisposable _disposable;
+        private readonly CancellationToken _cancellationToken;
+        private readonly CancellationTokenRegistration _registration;
+
+        private bool _hasValue;
+
+        public FirstValueToGDTaskObserver(
+            GDTaskCompletionSource<T> promise,
+            SingleAssignmentDisposable disposable,
+            CancellationToken cancellationToken
+        )
+        {
+            _promise = promise;
+            _disposable = disposable;
+            _cancellationToken = cancellationToken;
+
+            if (_cancellationToken.CanBeCanceled)
             {
-                old.OnCompleted();
+                _registration = _cancellationToken.RegisterWithoutCaptureExecutionContext(_callback, this);
+            }
+        }
+
+        private static void OnCanceled(object state)
+        {
+            var self = (FirstValueToGDTaskObserver<T>)state;
+            self._disposable.Dispose();
+            self._promise.TrySetCanceled(self._cancellationToken);
+        }
+
+        public void OnNext(T value)
+        {
+            _hasValue = true;
+            try
+            {
+                _promise.TrySetResult(value);
+            }
+            finally
+            {
+                _registration.Dispose();
+                _disposable.Dispose();
             }
         }
 
         public void OnError(Exception error)
         {
-            if (error == null) throw new ArgumentNullException("error");
-
-            IObserver<T> old;
-            lock (observerLock)
+            try
             {
-                ThrowIfDisposed();
-                if (isStopped) return;
-
-                old = outObserver;
-                outObserver = EmptyObserver<T>.Instance;
-                isStopped = true;
-                lastError = error;
+                _promise.TrySetException(error);
             }
-
-            old.OnError(error);
+            finally
+            {
+                _registration.Dispose();
+                _disposable.Dispose();
+            }
         }
 
-        public void OnNext(T value)
+        public void OnCompleted()
         {
-            lock (observerLock)
+            try
             {
-                ThrowIfDisposed();
-                if (isStopped) return;
-
-                this.hasValue = true;
-                this.lastValue = value;
+                if (!_hasValue)
+                {
+                    _promise.TrySetException(new InvalidOperationException("Sequence has no elements"));
+                }
             }
+            finally
+            {
+                _registration.Dispose();
+                _disposable.Dispose();
+            }
+        }
+    }
+
+    private class ReturnObservable<T> : IObservable<T>
+    {
+        private readonly T _value;
+
+        public ReturnObservable(T value)
+        {
+            _value = value;
         }
 
         public IDisposable Subscribe(IObserver<T> observer)
         {
-            if (observer == null) throw new ArgumentNullException("observer");
-
-            var ex = default(Exception);
-            var v = default(T);
-            var hv = false;
-
-            lock (observerLock)
-            {
-                ThrowIfDisposed();
-                if (!isStopped)
-                {
-                    var listObserver = outObserver as ListObserver<T>;
-                    if (listObserver != null)
-                    {
-                        outObserver = listObserver.Add(observer);
-                    }
-                    else
-                    {
-                        var current = outObserver;
-                        if (current is EmptyObserver<T>)
-                        {
-                            outObserver = observer;
-                        }
-                        else
-                        {
-                            outObserver = new ListObserver<T>(new ImmutableList<IObserver<T>>(new[] { current, observer }));
-                        }
-                    }
-
-                    return new Subscription(this, observer);
-                }
-
-                ex = lastError;
-                v = lastValue;
-                hv = hasValue;
-            }
-
-            if (ex != null)
-            {
-                observer.OnError(ex);
-            }
-            else if (hv)
-            {
-                observer.OnNext(v);
-                observer.OnCompleted();
-            }
-            else
-            {
-                observer.OnCompleted();
-            }
-
+            observer.OnNext(_value);
+            observer.OnCompleted();
             return EmptyDisposable.Instance;
         }
-
-        public void Dispose()
-        {
-            lock (observerLock)
-            {
-                isDisposed = true;
-                outObserver = DisposedObserver<T>.Instance;
-                lastError = null;
-                lastValue = default(T);
-            }
-        }
-
-        void ThrowIfDisposed()
-        {
-            if (isDisposed) throw new ObjectDisposedException("");
-        }
-
-        class Subscription : IDisposable
-        {
-            readonly object gate = new object();
-            AsyncSubject<T> parent;
-            IObserver<T> unsubscribeTarget;
-
-            public Subscription(AsyncSubject<T> parent, IObserver<T> unsubscribeTarget)
-            {
-                this.parent = parent;
-                this.unsubscribeTarget = unsubscribeTarget;
-            }
-
-            public void Dispose()
-            {
-                lock (gate)
-                {
-                    if (parent != null)
-                    {
-                        lock (parent.observerLock)
-                        {
-                            var listObserver = parent.outObserver as ListObserver<T>;
-                            if (listObserver != null)
-                            {
-                                parent.outObserver = listObserver.Remove(unsubscribeTarget);
-                            }
-                            else
-                            {
-                                parent.outObserver = EmptyObserver<T>.Instance;
-                            }
-
-                            unsubscribeTarget = null;
-                            parent = null;
-                        }
-                    }
-                }
-            }
-        }
     }
 
-    internal class ListObserver<T> : IObserver<T>
+    private class ThrowObservable<T> : IObservable<T>
     {
-        private readonly ImmutableList<IObserver<T>> _observers;
+        private readonly Exception _value;
 
-        public ListObserver(ImmutableList<IObserver<T>> observers)
+        public ThrowObservable(Exception value)
         {
-            _observers = observers;
+            _value = value;
         }
 
-        public void OnCompleted()
+        public IDisposable Subscribe(IObserver<T> observer)
         {
-            var targetObservers = _observers.Data;
-            for (int i = 0; i < targetObservers.Length; i++)
-            {
-                targetObservers[i].OnCompleted();
-            }
-        }
-
-        public void OnError(Exception error)
-        {
-            var targetObservers = _observers.Data;
-            for (int i = 0; i < targetObservers.Length; i++)
-            {
-                targetObservers[i].OnError(error);
-            }
-        }
-
-        public void OnNext(T value)
-        {
-            var targetObservers = _observers.Data;
-            for (int i = 0; i < targetObservers.Length; i++)
-            {
-                targetObservers[i].OnNext(value);
-            }
-        }
-
-        internal IObserver<T> Add(IObserver<T> observer)
-        {
-            return new ListObserver<T>(_observers.Add(observer));
-        }
-
-        internal IObserver<T> Remove(IObserver<T> observer)
-        {
-            var i = Array.IndexOf(_observers.Data, observer);
-            if (i < 0)
-                return this;
-
-            if (_observers.Data.Length == 2)
-            {
-                return _observers.Data[1 - i];
-            }
-            else
-            {
-                return new ListObserver<T>(_observers.Remove(observer));
-            }
-        }
-    }
-
-    internal class EmptyObserver<T> : IObserver<T>
-    {
-        public static readonly EmptyObserver<T> Instance = new EmptyObserver<T>();
-
-        EmptyObserver()
-        {
-
-        }
-
-        public void OnCompleted()
-        {
-        }
-
-        public void OnError(Exception error)
-        {
-        }
-
-        public void OnNext(T value)
-        {
-        }
-    }
-
-    internal class ThrowObserver<T> : IObserver<T>
-    {
-        public static readonly ThrowObserver<T> Instance = new ThrowObserver<T>();
-
-        ThrowObserver()
-        {
-
-        }
-
-        public void OnCompleted()
-        {
-        }
-
-        public void OnError(Exception error)
-        {
-            ExceptionDispatchInfo.Capture(error).Throw();
-        }
-
-        public void OnNext(T value)
-        {
-        }
-    }
-
-    internal class DisposedObserver<T> : IObserver<T>
-    {
-        public static readonly DisposedObserver<T> Instance = new DisposedObserver<T>();
-
-        DisposedObserver()
-        {
-
-        }
-
-        public void OnCompleted()
-        {
-            throw new ObjectDisposedException("");
-        }
-
-        public void OnError(Exception error)
-        {
-            throw new ObjectDisposedException("");
-        }
-
-        public void OnNext(T value)
-        {
-            throw new ObjectDisposedException("");
-        }
-    }
-
-    internal class ImmutableList<T>
-    {
-        public static readonly ImmutableList<T> Empty = new ImmutableList<T>();
-
-        T[] data;
-
-        public T[] Data
-        {
-            get { return data; }
-        }
-
-        ImmutableList()
-        {
-            data = new T[0];
-        }
-
-        public ImmutableList(T[] data)
-        {
-            this.data = data;
-        }
-
-        public ImmutableList<T> Add(T value)
-        {
-            var newData = new T[data.Length + 1];
-            Array.Copy(data, newData, data.Length);
-            newData[data.Length] = value;
-            return new ImmutableList<T>(newData);
-        }
-
-        public ImmutableList<T> Remove(T value)
-        {
-            var i = IndexOf(value);
-            if (i < 0) return this;
-
-            var length = data.Length;
-            if (length == 1) return Empty;
-
-            var newData = new T[length - 1];
-
-            Array.Copy(data, 0, newData, 0, i);
-            Array.Copy(data, i + 1, newData, i, length - i - 1);
-
-            return new ImmutableList<T>(newData);
-        }
-
-        public int IndexOf(T value)
-        {
-            for (var i = 0; i < data.Length; ++i)
-            {
-                // ImmutableList only use for IObserver(no worry for boxed)
-                if (object.Equals(data[i], value)) return i;
-            }
-            return -1;
+            observer.OnError(_value);
+            return EmptyDisposable.Instance;
         }
     }
 }
-

@@ -2,331 +2,335 @@
 using System.Collections.Generic;
 using System.Threading;
 
-namespace Fractural.Tasks.Internal
+namespace Fractural.Tasks.Internal;
+
+// Add, Remove, Enumerate with sweep. All operations are thread safe(in spinlock).
+internal class WeakDictionary<TKey, TValue>
+    where TKey : class
 {
-    // Add, Remove, Enumerate with sweep. All operations are thread safe(in spinlock).
-    internal class WeakDictionary<TKey, TValue>
-        where TKey : class
+    private Entry[] _buckets;
+    private int _size;
+    private SpinLock _gate; // mutable struct(not readonly)
+
+    private readonly float _loadFactor;
+    private readonly IEqualityComparer<TKey> _keyEqualityComparer;
+
+    public WeakDictionary(int capacity = 4, float loadFactor = 0.75f, IEqualityComparer<TKey> keyComparer = null)
     {
-        Entry[] buckets;
-        int size;
-        SpinLock gate; // mutable struct(not readonly)
+        var tableSize = CalculateCapacity(capacity, loadFactor);
+        _buckets = new Entry[tableSize];
+        _loadFactor = loadFactor;
+        _gate = new SpinLock(false);
+        _keyEqualityComparer = keyComparer ?? EqualityComparer<TKey>.Default;
+    }
 
-        readonly float loadFactor;
-        readonly IEqualityComparer<TKey> keyEqualityComparer;
-
-        public WeakDictionary(int capacity = 4, float loadFactor = 0.75f, IEqualityComparer<TKey> keyComparer = null)
+    public bool TryAdd(TKey key, TValue value)
+    {
+        bool lockTaken = false;
+        try
         {
-            var tableSize = CalculateCapacity(capacity, loadFactor);
-            this.buckets = new Entry[tableSize];
-            this.loadFactor = loadFactor;
-            this.gate = new SpinLock(false);
-            this.keyEqualityComparer = keyComparer ?? EqualityComparer<TKey>.Default;
+            _gate.Enter(ref lockTaken);
+            return TryAddInternal(key, value);
         }
-
-        public bool TryAdd(TKey key, TValue value)
+        finally
         {
-            bool lockTaken = false;
-            try
-            {
-                gate.Enter(ref lockTaken);
-                return TryAddInternal(key, value);
-            }
-            finally
-            {
-                if (lockTaken) gate.Exit(false);
-            }
+            if (lockTaken)
+                _gate.Exit(false);
         }
+    }
 
-        public bool TryGetValue(TKey key, out TValue value)
+    public bool TryGetValue(TKey key, out TValue value)
+    {
+        bool lockTaken = false;
+        try
         {
-            bool lockTaken = false;
-            try
+            _gate.Enter(ref lockTaken);
+            if (TryGetEntry(key, out _, out var entry))
             {
-                gate.Enter(ref lockTaken);
-                if (TryGetEntry(key, out _, out var entry))
-                {
-                    value = entry.Value;
-                    return true;
-                }
-
-                value = default(TValue);
-                return false;
-            }
-            finally
-            {
-                if (lockTaken) gate.Exit(false);
-            }
-        }
-
-        public bool TryRemove(TKey key)
-        {
-            bool lockTaken = false;
-            try
-            {
-                gate.Enter(ref lockTaken);
-                if (TryGetEntry(key, out var hashIndex, out var entry))
-                {
-                    Remove(hashIndex, entry);
-                    return true;
-                }
-
-                return false;
-            }
-            finally
-            {
-                if (lockTaken) gate.Exit(false);
-            }
-        }
-
-        bool TryAddInternal(TKey key, TValue value)
-        {
-            var nextCapacity = CalculateCapacity(size + 1, loadFactor);
-
-            TRY_ADD_AGAIN:
-            if (buckets.Length < nextCapacity)
-            {
-                // rehash
-                var nextBucket = new Entry[nextCapacity];
-                for (int i = 0; i < buckets.Length; i++)
-                {
-                    var e = buckets[i];
-                    while (e != null)
-                    {
-                        AddToBuckets(nextBucket, key, e.Value, e.Hash);
-                        e = e.Next;
-                    }
-                }
-
-                buckets = nextBucket;
-                goto TRY_ADD_AGAIN;
-            }
-            else
-            {
-                // add entry
-                var successAdd = AddToBuckets(buckets, key, value, keyEqualityComparer.GetHashCode(key));
-                if (successAdd) size++;
-                return successAdd;
-            }
-        }
-
-        bool AddToBuckets(Entry[] targetBuckets, TKey newKey, TValue value, int keyHash)
-        {
-            var h = keyHash;
-            var hashIndex = h & (targetBuckets.Length - 1);
-
-            TRY_ADD_AGAIN:
-            if (targetBuckets[hashIndex] == null)
-            {
-                targetBuckets[hashIndex] = new Entry
-                {
-                    Key = new WeakReference<TKey>(newKey, false),
-                    Value = value,
-                    Hash = h
-                };
-
+                value = entry.Value;
                 return true;
             }
-            else
-            {
-                // add to last.
-                var entry = targetBuckets[hashIndex];
-                while (entry != null)
-                {
-                    if (entry.Key.TryGetTarget(out var target))
-                    {
-                        if (keyEqualityComparer.Equals(newKey, target))
-                        {
-                            return false; // duplicate
-                        }
-                    }
-                    else
-                    {
-                        Remove(hashIndex, entry);
-                        if (targetBuckets[hashIndex] == null) goto TRY_ADD_AGAIN; // add new entry
-                    }
 
-                    if (entry.Next != null)
-                    {
-                        entry = entry.Next;
-                    }
-                    else
-                    {
-                        // found last
-                        entry.Next = new Entry
-                        {
-                            Key = new WeakReference<TKey>(newKey, false),
-                            Value = value,
-                            Hash = h
-                        };
-                        entry.Next.Prev = entry;
-                    }
-                }
-
-                return false;
-            }
+            value = default;
+            return false;
         }
-
-        bool TryGetEntry(TKey key, out int hashIndex, out Entry entry)
+        finally
         {
-            var table = buckets;
-            var hash = keyEqualityComparer.GetHashCode(key);
-            hashIndex = hash & table.Length - 1;
-            entry = table[hashIndex];
+            if (lockTaken)
+                _gate.Exit(false);
+        }
+    }
 
-            while (entry != null)
+    public bool TryRemove(TKey key)
+    {
+        bool lockTaken = false;
+        try
+        {
+            _gate.Enter(ref lockTaken);
+            if (TryGetEntry(key, out var hashIndex, out var entry))
             {
-                if (entry.Key.TryGetTarget(out var target))
-                {
-                    if (keyEqualityComparer.Equals(key, target))
-                    {
-                        return true;
-                    }
-                }
-                else
-                {
-                    // sweap
-                    Remove(hashIndex, entry);
-                }
-
-                entry = entry.Next;
+                Remove(hashIndex, entry);
+                return true;
             }
 
             return false;
         }
-
-        void Remove(int hashIndex, Entry entry)
+        finally
         {
-            if (entry.Prev == null && entry.Next == null)
-            {
-                buckets[hashIndex] = null;
-            }
-            else
-            {
-                if (entry.Prev == null)
-                {
-                    buckets[hashIndex] = entry.Next;
-                }
-                if (entry.Prev != null)
-                {
-                    entry.Prev.Next = entry.Next;
-                }
-                if (entry.Next != null)
-                {
-                    entry.Next.Prev = entry.Prev;
-                }
-            }
-            size--;
+            if (lockTaken)
+                _gate.Exit(false);
         }
+    }
 
-        public List<KeyValuePair<TKey, TValue>> ToList()
-        {
-            var list = new List<KeyValuePair<TKey, TValue>>(size);
-            ToList(ref list, false);
-            return list;
-        }
+    private bool TryAddInternal(TKey key, TValue value)
+    {
+        var nextCapacity = CalculateCapacity(_size + 1, _loadFactor);
 
-        // avoid allocate everytime.
-        public int ToList(ref List<KeyValuePair<TKey, TValue>> list, bool clear = true)
+        TRY_ADD_AGAIN:
+        if (_buckets.Length < nextCapacity)
         {
-            if (clear)
+            // rehash
+            var nextBucket = new Entry[nextCapacity];
+            for (int i = 0; i < _buckets.Length; i++)
             {
-                list.Clear();
+                var e = _buckets[i];
+                while (e is not null)
+                {
+                    AddToBuckets(nextBucket, key, e.Value, e.Hash);
+                    e = e.Next;
+                }
             }
 
-            var listIndex = 0;
+            _buckets = nextBucket;
+            goto TRY_ADD_AGAIN;
+        }
+        else
+        {
+            // add entry
+            var successAdd = AddToBuckets(_buckets, key, value, _keyEqualityComparer.GetHashCode(key));
+            if (successAdd)
+                _size++;
+            return successAdd;
+        }
+    }
 
-            bool lockTaken = false;
-            try
+    private bool AddToBuckets(Entry[] targetBuckets, TKey newKey, TValue value, int keyHash)
+    {
+        var h = keyHash;
+        var hashIndex = h & (targetBuckets.Length - 1);
+
+        TRY_ADD_AGAIN:
+        if (targetBuckets[hashIndex] is null)
+        {
+            targetBuckets[hashIndex] = new Entry
             {
-                for (int i = 0; i < buckets.Length; i++)
+                Key = new WeakReference<TKey>(newKey, false),
+                Value = value,
+                Hash = h
+            };
+
+            return true;
+        }
+        else
+        {
+            // add to last.
+            var entry = targetBuckets[hashIndex];
+            while (entry is not null)
+            {
+                if (entry.Key.TryGetTarget(out var target))
                 {
-                    var entry = buckets[i];
-                    while (entry != null)
+                    if (_keyEqualityComparer.Equals(newKey, target))
                     {
-                        if (entry.Key.TryGetTarget(out var target))
-                        {
-                            var item = new KeyValuePair<TKey, TValue>(target, entry.Value);
-                            if (listIndex < list.Count)
-                            {
-                                list[listIndex++] = item;
-                            }
-                            else
-                            {
-                                list.Add(item);
-                                listIndex++;
-                            }
-                        }
-                        else
-                        {
-                            // sweap
-                            Remove(i, entry);
-                        }
-
-                        entry = entry.Next;
+                        return false; // duplicate
                     }
-                }
-            }
-            finally
-            {
-                if (lockTaken) gate.Exit(false);
-            }
-
-            return listIndex;
-        }
-
-        static int CalculateCapacity(int collectionSize, float loadFactor)
-        {
-            var size = (int)(((float)collectionSize) / loadFactor);
-
-            size--;
-            size |= size >> 1;
-            size |= size >> 2;
-            size |= size >> 4;
-            size |= size >> 8;
-            size |= size >> 16;
-            size += 1;
-
-            if (size < 8)
-            {
-                size = 8;
-            }
-            return size;
-        }
-
-        class Entry
-        {
-            public WeakReference<TKey> Key;
-            public TValue Value;
-            public int Hash;
-            public Entry Prev;
-            public Entry Next;
-
-            // debug only
-            public override string ToString()
-            {
-                if (Key.TryGetTarget(out var target))
-                {
-                    return target + "(" + Count() + ")";
                 }
                 else
                 {
-                    return "(Dead)";
+                    Remove(hashIndex, entry);
+                    if (targetBuckets[hashIndex] is null)
+                        goto TRY_ADD_AGAIN; // add new entry
+                }
+
+                if (entry.Next is not null)
+                {
+                    entry = entry.Next;
+                }
+                else
+                {
+                    // found last
+                    entry.Next = new Entry
+                    {
+                        Key = new WeakReference<TKey>(newKey, false),
+                        Value = value,
+                        Hash = h
+                    };
+                    entry.Next.Prev = entry;
                 }
             }
 
-            int Count()
+            return false;
+        }
+    }
+
+    private bool TryGetEntry(TKey key, out int hashIndex, out Entry entry)
+    {
+        var table = _buckets;
+        var hash = _keyEqualityComparer.GetHashCode(key);
+        hashIndex = hash & table.Length - 1;
+        entry = table[hashIndex];
+
+        while (entry != null)
+        {
+            if (entry.Key.TryGetTarget(out var target))
             {
-                var count = 1;
-                var n = this;
-                while (n.Next != null)
+                if (_keyEqualityComparer.Equals(key, target))
                 {
-                    count++;
-                    n = n.Next;
+                    return true;
                 }
-                return count;
             }
+            else
+            {
+                // sweap
+                Remove(hashIndex, entry);
+            }
+
+            entry = entry.Next;
+        }
+
+        return false;
+    }
+
+    private void Remove(int hashIndex, Entry entry)
+    {
+        if (entry.Prev is null && entry.Next is null)
+        {
+            _buckets[hashIndex] = null;
+        }
+        else
+        {
+            if (entry.Prev is null)
+            {
+                _buckets[hashIndex] = entry.Next;
+            }
+            if (entry.Prev is not null)
+            {
+                entry.Prev.Next = entry.Next;
+            }
+            if (entry.Next is not null)
+            {
+                entry.Next.Prev = entry.Prev;
+            }
+        }
+        _size--;
+    }
+
+    public List<KeyValuePair<TKey, TValue>> ToList()
+    {
+        var list = new List<KeyValuePair<TKey, TValue>>(_size);
+        ToList(ref list, false);
+        return list;
+    }
+
+    // avoid allocate everytime.
+    public int ToList(ref List<KeyValuePair<TKey, TValue>> list, bool clear = true)
+    {
+        if (clear)
+        {
+            list.Clear();
+        }
+
+        var listIndex = 0;
+
+        bool lockTaken = false;
+        try
+        {
+            for (int i = 0; i < _buckets.Length; i++)
+            {
+                var entry = _buckets[i];
+                while (entry != null)
+                {
+                    if (entry.Key.TryGetTarget(out var target))
+                    {
+                        var item = new KeyValuePair<TKey, TValue>(target, entry.Value);
+                        if (listIndex < list.Count)
+                        {
+                            list[listIndex++] = item;
+                        }
+                        else
+                        {
+                            list.Add(item);
+                            listIndex++;
+                        }
+                    }
+                    else
+                    {
+                        // sweap
+                        Remove(i, entry);
+                    }
+
+                    entry = entry.Next;
+                }
+            }
+        }
+        finally
+        {
+            if (lockTaken)
+                _gate.Exit(false);
+        }
+
+        return listIndex;
+    }
+
+    private static int CalculateCapacity(int collectionSize, float loadFactor)
+    {
+        var size = (int)(((float)collectionSize) / loadFactor);
+
+        size--;
+        size |= size >> 1;
+        size |= size >> 2;
+        size |= size >> 4;
+        size |= size >> 8;
+        size |= size >> 16;
+        size += 1;
+
+        if (size < 8)
+        {
+            size = 8;
+        }
+        return size;
+    }
+
+    private class Entry
+    {
+        public WeakReference<TKey> Key;
+        public TValue Value;
+        public int Hash;
+        public Entry Prev;
+        public Entry Next;
+
+        // debug only
+        public override string ToString()
+        {
+            if (Key.TryGetTarget(out var target))
+            {
+                return target + "(" + Count() + ")";
+            }
+            else
+            {
+                return "(Dead)";
+            }
+        }
+
+        private int Count()
+        {
+            var count = 1;
+            var n = this;
+            while (n.Next is not null)
+            {
+                count++;
+                n = n.Next;
+            }
+            return count;
         }
     }
 }
-

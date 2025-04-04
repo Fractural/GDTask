@@ -1,50 +1,49 @@
 ﻿using System;
 using System.Runtime.CompilerServices;
 
-namespace Fractural.Tasks.Internal
+namespace Fractural.Tasks.Internal;
+
+internal sealed class PooledDelegate<T> : ITaskPoolNode<PooledDelegate<T>>
 {
-    internal sealed class PooledDelegate<T> : ITaskPoolNode<PooledDelegate<T>>
+    private static TaskPool<PooledDelegate<T>> _pool;
+
+    private readonly Action<T> _runDelegate;
+    private Action _continuation;
+
+    private PooledDelegate<T> _nextNode;
+    public ref PooledDelegate<T> NextNode => ref _nextNode;
+
+    static PooledDelegate()
     {
-        static TaskPool<PooledDelegate<T>> pool;
+        TaskPool.RegisterSizeGetter(typeof(PooledDelegate<T>), () => _pool.Size);
+    }
 
-        PooledDelegate<T> nextNode;
-        public ref PooledDelegate<T> NextNode => ref nextNode;
+    private PooledDelegate()
+    {
+        _runDelegate = Run;
+    }
 
-        static PooledDelegate()
+    [MethodImpl(MethodImplOptions.AggressiveInlining)]
+    public static Action<T> Create(Action continuation)
+    {
+        if (!_pool.TryPop(out var item))
         {
-            TaskPool.RegisterSizeGetter(typeof(PooledDelegate<T>), () => pool.Size);
+            item = new PooledDelegate<T>();
         }
 
-        readonly Action<T> runDelegate;
-        Action continuation;
+        item._continuation = continuation;
+        return item._runDelegate;
+    }
 
-        PooledDelegate()
+    [MethodImpl(MethodImplOptions.AggressiveInlining)]
+    void Run(T _)
+    {
+        var call = _continuation;
+        _continuation = null;
+        if (call is not null)
         {
-            runDelegate = Run;
-        }
-
-        [MethodImpl(MethodImplOptions.AggressiveInlining)]
-        public static Action<T> Create(Action continuation)
-        {
-            if (!pool.TryPop(out var item))
-            {
-                item = new PooledDelegate<T>();
-            }
-
-            item.continuation = continuation;
-            return item.runDelegate;
-        }
-
-        [MethodImpl(MethodImplOptions.AggressiveInlining)]
-        void Run(T _)
-        {
-            var call = continuation;
-            continuation = null;
-            if (call != null)
-            {
-                pool.TryPush(this);
-                call.Invoke();
-            }
+            _pool.TryPush(this);
+            call.Invoke();
         }
     }
 }

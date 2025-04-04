@@ -1,195 +1,195 @@
-﻿using Godot;
-using System;
+﻿using System;
 using System.Threading;
+using Godot;
 
-namespace Fractural.Tasks.Triggers
+namespace Fractural.Tasks.Triggers;
+
+public abstract partial class AsyncTriggerBase<T> : Node
 {
-    public abstract partial class AsyncTriggerBase<T> : Node
+    private TriggerEvent<T> _triggerEvent;
+
+    protected internal bool CalledEnterTree;
+    protected internal bool CalledDestroy;
+
+    public override void _EnterTree()
     {
-        TriggerEvent<T> triggerEvent;
+        CalledEnterTree = true;
+    }
 
-        internal protected bool calledEnterTree;
-        internal protected bool calledDestroy;
+    public override void _Notification(int what)
+    {
+        if (what == NotificationPredelete)
+            OnDestroy();
+    }
 
-        public override void _EnterTree()
+    private void OnDestroy()
+    {
+        if (CalledDestroy)
+            return;
+        CalledDestroy = true;
+
+        _triggerEvent.SetCompleted();
+    }
+
+    internal void AddHandler(ITriggerHandler<T> handler)
+    {
+        _triggerEvent.Add(handler);
+    }
+
+    internal void RemoveHandler(ITriggerHandler<T> handler)
+    {
+        _triggerEvent.Remove(handler);
+    }
+
+    protected void RaiseEvent(T value)
+    {
+        _triggerEvent.SetResult(value);
+    }
+}
+
+public interface IAsyncOneShotTrigger
+{
+    GDTask OneShotAsync();
+}
+
+public partial class AsyncTriggerHandler<T> : IAsyncOneShotTrigger
+{
+    GDTask IAsyncOneShotTrigger.OneShotAsync()
+    {
+        _core.Reset();
+        return new GDTask((IGDTaskSource)this, _core.Version);
+    }
+}
+
+public sealed partial class AsyncTriggerHandler<T> : IGDTaskSource<T>, ITriggerHandler<T>, IDisposable
+{
+    private static Action<object> _cancellationCallback = CancellationCallback;
+
+    private readonly AsyncTriggerBase<T> _trigger;
+
+    private CancellationToken _cancellationToken;
+    private CancellationTokenRegistration _registration;
+    private bool _isDisposed;
+    private bool _callOnce;
+
+    private GDTaskCompletionSourceCore<T> _core;
+
+    internal CancellationToken CancellationToken => _cancellationToken;
+
+    ITriggerHandler<T> ITriggerHandler<T>.Previous { get; set; }
+    ITriggerHandler<T> ITriggerHandler<T>.Next { get; set; }
+
+    internal AsyncTriggerHandler(AsyncTriggerBase<T> trigger, bool callOnce)
+    {
+        if (_cancellationToken.IsCancellationRequested)
         {
-            calledEnterTree = true;
+            _isDisposed = true;
+            return;
         }
 
-        public override void _Notification(int what)
+        _trigger = trigger;
+        _cancellationToken = default;
+        _registration = default;
+        _callOnce = callOnce;
+
+        trigger.AddHandler(this);
+
+        TaskTracker.TrackActiveTask(this, 3);
+    }
+
+    internal AsyncTriggerHandler(AsyncTriggerBase<T> trigger, CancellationToken cancellationToken, bool callOnce)
+    {
+        if (cancellationToken.IsCancellationRequested)
         {
-            if (what == NotificationPredelete)
-                OnDestroy();
+            _isDisposed = true;
+            return;
         }
 
-        void OnDestroy()
-        {
-            if (calledDestroy) return;
-            calledDestroy = true;
+        _trigger = trigger;
+        _cancellationToken = cancellationToken;
+        _callOnce = callOnce;
 
-            triggerEvent.SetCompleted();
+        trigger.AddHandler(this);
+
+        if (cancellationToken.CanBeCanceled)
+        {
+            _registration = cancellationToken.RegisterWithoutCaptureExecutionContext(_cancellationCallback, this);
         }
 
-        internal void AddHandler(ITriggerHandler<T> handler)
-        {
-            triggerEvent.Add(handler);
-        }
+        TaskTracker.TrackActiveTask(this, 3);
+    }
 
-        internal void RemoveHandler(ITriggerHandler<T> handler)
-        {
-            triggerEvent.Remove(handler);
-        }
+    private static void CancellationCallback(object state)
+    {
+        var self = (AsyncTriggerHandler<T>)state;
+        self.Dispose();
 
-        protected void RaiseEvent(T value)
+        self._core.TrySetCanceled(self._cancellationToken);
+    }
+
+    public void Dispose()
+    {
+        if (!_isDisposed)
         {
-            triggerEvent.SetResult(value);
+            _isDisposed = true;
+            TaskTracker.RemoveTracking(this);
+            _registration.Dispose();
+            _trigger.RemoveHandler(this);
         }
     }
 
-    public interface IAsyncOneShotTrigger
+    T IGDTaskSource<T>.GetResult(short token)
     {
-        GDTask OneShotAsync();
+        try
+        {
+            return _core.GetResult(token);
+        }
+        finally
+        {
+            if (_callOnce)
+            {
+                Dispose();
+            }
+        }
     }
 
-    public partial class AsyncTriggerHandler<T> : IAsyncOneShotTrigger
+    void ITriggerHandler<T>.OnNext(T value)
     {
-        GDTask IAsyncOneShotTrigger.OneShotAsync()
-        {
-            core.Reset();
-            return new GDTask((IGDTaskSource)this, core.Version);
-        }
+        _core.TrySetResult(value);
     }
 
-    public sealed partial class AsyncTriggerHandler<T> : IGDTaskSource<T>, ITriggerHandler<T>, IDisposable
+    void ITriggerHandler<T>.OnCanceled(CancellationToken cancellationToken)
     {
-        static Action<object> cancellationCallback = CancellationCallback;
+        _core.TrySetCanceled(cancellationToken);
+    }
 
-        readonly AsyncTriggerBase<T> trigger;
+    void ITriggerHandler<T>.OnCompleted()
+    {
+        _core.TrySetCanceled(CancellationToken.None);
+    }
 
-        CancellationToken cancellationToken;
-        CancellationTokenRegistration registration;
-        bool isDisposed;
-        bool callOnce;
+    void ITriggerHandler<T>.OnError(Exception ex)
+    {
+        _core.TrySetException(ex);
+    }
 
-        GDTaskCompletionSourceCore<T> core;
+    void IGDTaskSource.GetResult(short token)
+    {
+        ((IGDTaskSource<T>)this).GetResult(token);
+    }
 
-        internal CancellationToken CancellationToken => cancellationToken;
+    GDTaskStatus IGDTaskSource.GetStatus(short token)
+    {
+        return _core.GetStatus(token);
+    }
 
-        ITriggerHandler<T> ITriggerHandler<T>.Prev { get; set; }
-        ITriggerHandler<T> ITriggerHandler<T>.Next { get; set; }
+    GDTaskStatus IGDTaskSource.UnsafeGetStatus()
+    {
+        return _core.UnsafeGetStatus();
+    }
 
-        internal AsyncTriggerHandler(AsyncTriggerBase<T> trigger, bool callOnce)
-        {
-            if (cancellationToken.IsCancellationRequested)
-            {
-                isDisposed = true;
-                return;
-            }
-
-            this.trigger = trigger;
-            this.cancellationToken = default;
-            this.registration = default;
-            this.callOnce = callOnce;
-
-            trigger.AddHandler(this);
-
-            TaskTracker.TrackActiveTask(this, 3);
-        }
-
-        internal AsyncTriggerHandler(AsyncTriggerBase<T> trigger, CancellationToken cancellationToken, bool callOnce)
-        {
-            if (cancellationToken.IsCancellationRequested)
-            {
-                isDisposed = true;
-                return;
-            }
-
-            this.trigger = trigger;
-            this.cancellationToken = cancellationToken;
-            this.callOnce = callOnce;
-
-            trigger.AddHandler(this);
-
-            if (cancellationToken.CanBeCanceled)
-            {
-                registration = cancellationToken.RegisterWithoutCaptureExecutionContext(cancellationCallback, this);
-            }
-
-            TaskTracker.TrackActiveTask(this, 3);
-        }
-
-        static void CancellationCallback(object state)
-        {
-            var self = (AsyncTriggerHandler<T>)state;
-            self.Dispose();
-
-            self.core.TrySetCanceled(self.cancellationToken);
-        }
-
-        public void Dispose()
-        {
-            if (!isDisposed)
-            {
-                isDisposed = true;
-                TaskTracker.RemoveTracking(this);
-                registration.Dispose();
-                trigger.RemoveHandler(this);
-            }
-        }
-
-        T IGDTaskSource<T>.GetResult(short token)
-        {
-            try
-            {
-                return core.GetResult(token);
-            }
-            finally
-            {
-                if (callOnce)
-                {
-                    Dispose();
-                }
-            }
-        }
-
-        void ITriggerHandler<T>.OnNext(T value)
-        {
-            core.TrySetResult(value);
-        }
-
-        void ITriggerHandler<T>.OnCanceled(CancellationToken cancellationToken)
-        {
-            core.TrySetCanceled(cancellationToken);
-        }
-
-        void ITriggerHandler<T>.OnCompleted()
-        {
-            core.TrySetCanceled(CancellationToken.None);
-        }
-
-        void ITriggerHandler<T>.OnError(Exception ex)
-        {
-            core.TrySetException(ex);
-        }
-
-        void IGDTaskSource.GetResult(short token)
-        {
-            ((IGDTaskSource<T>)this).GetResult(token);
-        }
-
-        GDTaskStatus IGDTaskSource.GetStatus(short token)
-        {
-            return core.GetStatus(token);
-        }
-
-        GDTaskStatus IGDTaskSource.UnsafeGetStatus()
-        {
-            return core.UnsafeGetStatus();
-        }
-
-        void IGDTaskSource.OnCompleted(Action<object> continuation, object state, short token)
-        {
-            core.OnCompleted(continuation, state, token);
-        }
+    void IGDTaskSource.OnCompleted(Action<object> continuation, object state, short token)
+    {
+        _core.OnCompleted(continuation, state, token);
     }
 }

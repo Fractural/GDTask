@@ -1,21 +1,19 @@
 using System.Collections.Generic;
 using System.Threading;
 
-namespace Fractural.Tasks
+namespace Fractural.Tasks;
+
+public partial class CancellationTokenEqualityComparer : IEqualityComparer<CancellationToken>
 {
-    public partial class CancellationTokenEqualityComparer : IEqualityComparer<CancellationToken>
+    public static readonly IEqualityComparer<CancellationToken> Default = new CancellationTokenEqualityComparer();
+
+    public bool Equals(CancellationToken x, CancellationToken y)
     {
-        public static readonly IEqualityComparer<CancellationToken> Default = new CancellationTokenEqualityComparer();
+        return x.Equals(y);
+    }
 
-        public bool Equals(CancellationToken x, CancellationToken y)
-        {
-            return x.Equals(y);
-        }
-
-        public int GetHashCode(CancellationToken obj)
-        {
-            return obj.GetHashCode();
-        }
+    public int GetHashCode(CancellationToken obj)
+    {
+        return obj.GetHashCode();
     }
 }
-
