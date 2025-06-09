@@ -154,7 +154,7 @@ namespace Fractural.Tasks
         /// <summary>
         /// Never complete.
         /// </summary>
-        public static GDTask Never(CancellationToken cancellationToken)
+        public static GDTask Never(CancellationToken cancellationToken = default)
         {
             return new GDTask<AsyncUnit>(new NeverPromise<AsyncUnit>(cancellationToken), 0);
         }
@@ -162,7 +162,7 @@ namespace Fractural.Tasks
         /// <summary>
         /// Never complete.
         /// </summary>
-        public static GDTask<T> Never<T>(CancellationToken cancellationToken)
+        public static GDTask<T> Never<T>(CancellationToken cancellationToken = default)
         {
             return new GDTask<T>(new NeverPromise<T>(cancellationToken), 0);
         }
