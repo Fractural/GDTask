@@ -1,6 +1,4 @@
-﻿using System;
-using System.Collections;
-using System.Runtime.ExceptionServices;
+using System;
 using System.Threading;
 using System.Threading.Tasks;
 using Fractural.Tasks.Internal;
@@ -685,6 +683,26 @@ namespace Fractural.Tasks
         public static async GDTask<TR> ContinueWith<T, TR>(this GDTask<T> task, Func<T, GDTask<TR>> continuationFunction)
         {
             return await continuationFunction(await task);
+        }
+
+        public static async GDTask ContinueWith<T>(this GDTask<T> task, Action continuationFunction) {
+            await task;
+            continuationFunction();
+        }
+
+        public static async GDTask ContinueWith<T>(this GDTask<T> task, Func<GDTask> continuationFunction) {
+            await task;
+            await continuationFunction();
+        }
+
+        public static async GDTask<TR> ContinueWith<T, TR>(this GDTask<T> task, Func<TR> continuationFunction) {
+            await task;
+            return continuationFunction();
+        }
+
+        public static async GDTask<TR> ContinueWith<T, TR>(this GDTask<T> task, Func<GDTask<TR>> continuationFunction) {
+            await task;
+            return await continuationFunction();
         }
 
         public static async GDTask ContinueWith(this GDTask task, Action continuationFunction)
