@@ -1,3 +1,7 @@
+# ⚠️ Superceded by [GDTask.Nuget](https://github.com/Delsin-Yu/GDTask.Nuget)
+
+This addon has been superceded by [Delsin-Yu's GDTask.Nuget](https://github.com/Delsin-Yu/GDTask.Nuget) package, which is accessible from the Nuget package manager. Their package also contains useful profiling tools for debugging GDTasks.
+
 # GDTask ✅
 
 ![Deploy](https://github.com/Fractural/GDTask/actions/workflows/deploy.yml/badge.svg)
